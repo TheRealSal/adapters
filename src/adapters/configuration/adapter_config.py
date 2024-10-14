@@ -706,6 +706,19 @@ class UniPELTConfig(ConfigUnion):
         super().__init__(*[c.replace(use_gating=True) for c in components])
 
 
+class SeqMambaAdapterConfig(BnConfig):
+    """
+    Config class for MambaAdapter.
+    """
+    reduction_factor: Union[float, Mapping] = 64
+    mamba_state_size : int = 64
+    mamba_conv_kernel : int = 4
+    mamba_expand_factor : int = 2
+    mh_adapter: bool = False
+    output_adapter: bool = True
+    non_linearity: str = "relu"
+
+
 # IMPORTANT: When adding a new config here, also add it to docs/overview.md!
 ADAPTER_CONFIG_MAP = {
     # DEPRECATED STRINGS
@@ -734,6 +747,8 @@ ADAPTER_CONFIG_MAP = {
     "direft": DiReftConfig(),
     "mam": MAMConfig(),
     "unipelt": UniPELTConfig(),
+    "mamba": SeqMambaAdapterConfig(),
+    "mamba-2": SeqMambaAdapterConfig(),
 }
 
 DEFAULT_ADAPTER_CONFIG = "seq_bn"

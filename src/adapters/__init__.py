@@ -59,6 +59,7 @@ _import_structure = {
         "PrefixTuningConfig",
         "PromptTuningConfig",
         "ReftConfig",
+        "SeqMambaAdapterConfig",
         "SeqBnConfig",
         "SeqBnInvConfig",
         "StaticAdapterFusionConfig",
@@ -177,6 +178,7 @@ if TYPE_CHECKING:
         SeqBnInvConfig,
         StaticAdapterFusionConfig,
         UniPELTConfig,
+        SeqMambaAdapterConfig,
     )
     from .context import AdapterSetup, ForwardContext
     from .heads import (
