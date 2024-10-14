@@ -711,13 +711,13 @@ class SeqMambaAdapterConfig(BnConfig):
     """
     Config class for MambaAdapter.
     """
-    reduction_factor: Union[float, Mapping] = 64
-    mamba_state_size : int = 64
-    mamba_conv_kernel : int = 4
-    mamba_expand_factor : int = 2
     mh_adapter: bool = False
     output_adapter: bool = True
+    reduction_factor: Union[float, Mapping] = 64
     non_linearity: str = "relu"
+    mamba_state_size: int = 64
+    mamba_conv_kernel: int = 4
+    mamba_expand_factor: int = 2
 
 
 # IMPORTANT: When adding a new config here, also add it to docs/overview.md!
