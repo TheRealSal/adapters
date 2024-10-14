@@ -706,6 +706,7 @@ class UniPELTConfig(ConfigUnion):
         super().__init__(*[c.replace(use_gating=True) for c in components])
 
 
+@dataclass(eq=False)
 class SeqMambaAdapterConfig(BnConfig):
     """
     Config class for MambaAdapter.
