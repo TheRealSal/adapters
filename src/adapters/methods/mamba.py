@@ -1,40 +1,4 @@
-import torch
-from torch import nn
-from adapters.methods.bottleneck import BottleneckLayer
-from adapters.configuration.adapter_config import SeqMambaAdapterConfig
-
-class MambaAdapter(BottleneckLayer):
-    def __init__(
-        self,
-        config,
-        model_config,
-        layer_idx,
-    ):
-        super().__init__(config, model_config, layer_idx)
-        
-        # Replace the non-linearity with a MambaMixer
-        mamba_config = SeqMambaAdapterConfig(
-            reduction_factor=config.reduction_factor,
-            intermediate_size=config.mamba_hidden_size,
-            mamba_expand_factor=config.mamba_expand_factor,
-            mamba_state_size=config.mamba_state_size,
-            mamba_conv_kernel=config.mamba_conv_kernel,
-        )
-        
-    def forward(self, x, residual_input=None):
-        if isinstance(x, tuple):
-            x, residual_input = x
-        
-        down = self.down_proj(x)
-        down = self.mamba(down)[0]  # MambaMixer returns a tuple, we only need the first element
-        up = self.up_proj(down)
-        
-        output = up
-        if self.scaling:
-            output = output * self.scaling_factor
-        if self.residual_connection:
-            output = output + residual_input
-        return output
+from adapters.methods.bottleneck import BottleneckLayer, BottleneckState
 
 from typing import Dict, List, Mapping, NamedTuple, Optional, Union
 
@@ -51,33 +15,10 @@ from ..composition import (
     Stack,
     adjust_tensors_for_parallel,
 )
-from ..configuration import SeqMambaAdapterConfig
+from ..configuration import MambaAdapterConfig
 from ..context import ForwardContext
 from .adapter_layer_base import ComposableAdapterLayerBase
-from .modeling import Adapter, BertFusion, ParallelAdapter
-
-
-class MambaBottleneckState(NamedTuple):
-    """
-    Models the input and output states of a bottleneck adapter layer.
-
-    Args:
-        hidden_states (torch.Tensor): The layer input/ output hidden states.
-        input_tensor (torch.Tensor): The Transformer sub-block residual connection inputs.
-        adapter_residual (torch.Tensor): The adapter residual connection inputs.
-        layer_norm (torch.nn.Module, optional): The Transformer layer norm module.
-        bottleneck_up (torch.Tensor, optional):
-            The up-projected bottleneck MLP output. This is only for Fuse compositions.
-        last (str, optional): Name of the last adapter applied in the composition.
-    """
-
-    hidden_states: torch.Tensor
-    input_tensor: torch.Tensor
-    adapter_residual: torch.Tensor
-    layer_norm: Optional[torch.nn.Module]
-    bottleneck_up: Optional[torch.Tensor] = None
-    last: Optional[str] = None
-
+from .modeling import BertFusion, MambaAdapter, ParallelMambaAdapter
 
 class MambaLayer(ComposableAdapterLayerBase, nn.Module):
     adapter_modules_name = "adapters"
@@ -98,7 +39,7 @@ class MambaLayer(ComposableAdapterLayerBase, nn.Module):
         self.layer_idx = layer_idx
         adapter_config = self.adapters_config.match(
             adapter_name,
-            config_type=SeqMambaAdapterConfig,
+            config_type=MambaAdapterConfig,
             layer_idx=self.layer_idx,
             location_key=self.location_key,
         )
@@ -117,7 +58,7 @@ class MambaLayer(ComposableAdapterLayerBase, nn.Module):
                     )
 
             if adapter_config.is_parallel:
-                adapter_class = ParallelAdapter
+                adapter_class = ParallelMambaAdapter
             else:
                 adapter_class = MambaAdapter
             adapter = adapter_class(

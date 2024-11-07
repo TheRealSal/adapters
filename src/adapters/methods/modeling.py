@@ -5,7 +5,7 @@ from torch import nn
 
 from transformers.activations import get_activation
 
-from ..configuration import AdapterFusionConfig, BnConfig, SeqMambaAdapterConfig
+from ..configuration import AdapterFusionConfig, BnConfig, MambaAdapterConfig
 from ..context import ForwardContext
 from mamba_ssm import Mamba, Mamba2
 
@@ -418,12 +418,15 @@ class MambaAdapter(nn.Module):
     Implementation of a sequential bottleneck adapter block.
     """
 
+    shared_down = None
+    shared_up = None
+
     def __init__(
         self,
         adapter_name,
         input_size,
         down_sample,
-        config: SeqMambaAdapterConfig,
+        config: MambaAdapterConfig,
     ):
         super().__init__()
         self.name = adapter_name
@@ -458,6 +461,10 @@ class MambaAdapter(nn.Module):
         if config["phm_layer"]:
             # Linear down projection of the input
             seq_list.append(PHMLayer(adapter_name, self.input_size, self.down_sample, "down", config))
+        elif config["shared_proj"]:
+            if MambaAdapter.shared_down is None:
+                MambaAdapter.shared_down = nn.Linear(self.input_size, self.down_sample)
+            seq_list.append(MambaAdapter.shared_down)
         else:
             seq_list.append(nn.Linear(self.input_size, self.down_sample))
 
@@ -480,6 +487,11 @@ class MambaAdapter(nn.Module):
         if config["phm_layer"]:
             # Linear down projection of the input
             self.adapter_up = PHMLayer(adapter_name, self.down_sample, self.input_size, "up", config)
+        elif config["shared_proj"]:
+            if MambaAdapter.shared_up is None:
+                MambaAdapter.shared_up = nn.Linear(self.down_sample, self.input_size)
+
+            self.adapter_up = MambaAdapter.shared_up
         else:
             self.adapter_up = nn.Linear(self.down_sample, self.input_size)
 
@@ -626,6 +638,88 @@ class MambaAdapter(nn.Module):
             module.weight.data.fill_(1.0)
         if isinstance(module, nn.Linear) and module.bias is not None:
             module.bias.data.zero_()
+
+
+class ParallelMambaAdapter(MambaAdapter):
+    """
+        Implementation of a parallel Mamba adapter block.
+        """
+
+    def __init__(self, adapter_name, input_size, down_sample, config: BnConfig):
+        super().__init__(adapter_name, input_size, down_sample, config)
+
+    def pre_forward(
+            self,
+            hidden_states,
+            input_tensor,
+            layer_norm,
+            fusion_config=None,
+    ):
+        """
+        Retrieves the hidden_states, query (for Fusion), and residual connection according to the set configuration.
+
+        Args:
+            adapter_config: config file according to what the parameters are passed
+            hidden_states: output of previous layer
+            input_tensor: residual connection before FFN
+
+        Returns: hidden_states, query, residual
+
+        """
+        # In case of parallel adapter, return the input tensor as hidden states
+        query = None
+        if fusion_config is not None:
+            query = input_tensor
+        return input_tensor, query, input_tensor
+
+    def forward(self, x, residual_input, output_gating=False):
+        down = self.adapter_down(x)
+
+        down = self.mamba(down)
+
+        up = self.adapter_up(down)
+
+        up = up * self.scaling
+
+        output = self.dropout(up)
+
+        if self.use_gating:
+            # x.shape = (batch_size, seq_len, hidden_size)
+            gate = torch.sigmoid(self.gate(x))
+            gate = torch.mean(gate, dim=1).unsqueeze(-1)
+            output = output * gate
+
+        # apply layer norm if available
+        if self.add_layer_norm_after:
+            output = self.adapter_norm_after(output)
+
+        if self.use_gating and output_gating:
+            return output, down, up, gate
+        return output, down, up
+
+    def post_forward(self, hidden_states, input_hidden_states, input_tensor, layer_norm):
+        """
+        Performs computations after the forward pass of the adapter block(s). This e.g. includes applying the residual
+        connection and layer norm if configured in this way.
+
+        Args:
+            hidden_states: The hidden states outputted by the adapter block(s).
+            input_hidden_states: Residual connection before the adapter block(s).
+            input_tensor: Residual connection before the Transformer FFN/ attention layer.
+            layer_norm: Transformer LayerNorm.
+
+        Returns:
+            The modified hidden states.
+        """
+        hidden_states = hidden_states + input_hidden_states
+
+        if self.original_ln_after:
+            if layer_norm:
+                hidden_states = layer_norm(hidden_states + input_tensor)
+            else:
+                hidden_states = hidden_states + input_tensor
+
+        return hidden_states
 
 
 # Invertible Adapters

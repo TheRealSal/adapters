@@ -178,7 +178,10 @@ if TYPE_CHECKING:
         SeqBnInvConfig,
         StaticAdapterFusionConfig,
         UniPELTConfig,
-        SeqMambaAdapterConfig,
+        MambaAdapterConfig,
+        ParallelMambaAdapterConfig,
+        DoubleMambaAdapterConfig,
+        DoubleParallelMambaAdapterConfig,
     )
     from .context import AdapterSetup, ForwardContext
     from .heads import (

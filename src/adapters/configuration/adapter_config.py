@@ -707,7 +707,7 @@ class UniPELTConfig(ConfigUnion):
 
 
 @dataclass(eq=False)
-class SeqMambaAdapterConfig(BnConfig):
+class MambaAdapterConfig(BnConfig):
     """
     Config class for MambaAdapter.
     """
@@ -718,6 +718,33 @@ class SeqMambaAdapterConfig(BnConfig):
     mamba_state_size: int = 64
     mamba_conv_kernel: int = 4
     mamba_expand_factor: int = 2
+
+
+@dataclass(eq=False)
+class ParallelMambaAdapterConfig(MambaAdapterConfig):
+    """
+    Config class for MambaAdapter.
+    """
+    is_parallel: bool = True
+
+
+@dataclass(eq=False)
+class DoubleMambaAdapterConfig(MambaAdapterConfig):
+    """
+    Config class for MambaAdapter.
+    """
+    mh_adapter: bool = True
+    output_adapter: bool = True
+
+
+@dataclass(eq=False)
+class DoubleParallelMambaAdapterConfig(MambaAdapterConfig):
+    """
+    Config class for MambaAdapter.
+    """
+    mh_adapter: bool = True
+    output_adapter: bool = True
+    is_parallel: bool = True
 
 
 # IMPORTANT: When adding a new config here, also add it to docs/overview.md!
@@ -748,8 +775,10 @@ ADAPTER_CONFIG_MAP = {
     "direft": DiReftConfig(),
     "mam": MAMConfig(),
     "unipelt": UniPELTConfig(),
-    "mamba": SeqMambaAdapterConfig(),
-    "mamba-2": SeqMambaAdapterConfig(),
+    "mamba": MambaAdapterConfig(),
+    "par_mamba": ParallelMambaAdapterConfig(),
+    "double_mamba": DoubleMambaAdapterConfig(),
+    "double_parallel_mamba": DoubleParallelMambaAdapterConfig(),
 }
 
 DEFAULT_ADAPTER_CONFIG = "seq_bn"
