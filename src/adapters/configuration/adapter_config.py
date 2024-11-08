@@ -250,6 +250,7 @@ class BnConfig(AdapterConfig):
     hypercomplex_nonlinearity: Optional[str] = "glorot-uniform"
     phm_rank: Optional[int] = 1
     phm_bias: Optional[bool] = True
+    shared_proj: bool = False
 
     # We want to emulate a simple form of immutability while keeping the ability to add custom attributes.
     # Therefore, we don't allow changing attribute values if set once.
@@ -779,6 +780,10 @@ ADAPTER_CONFIG_MAP = {
     "par_mamba": ParallelMambaAdapterConfig(),
     "double_mamba": DoubleMambaAdapterConfig(),
     "double_parallel_mamba": DoubleParallelMambaAdapterConfig(),
+    "shared_scaled_mamba": MambaAdapterConfig(scaling="learned", shared_proj=True),
+    "shared_scaled_par_mamba": ParallelMambaAdapterConfig(scaling="learned", shared_proj=True),
+    "shared_scaled_double_mamba": DoubleMambaAdapterConfig(scaling="learned", shared_proj=True),
+    "shared_scaled_double_parallel_mamba": DoubleParallelMambaAdapterConfig(scaling="learned", shared_proj=True),
 }
 
 DEFAULT_ADAPTER_CONFIG = "seq_bn"
