@@ -712,6 +712,8 @@ class MambaAdapterConfig(BnConfig):
     """
     Config class for MambaAdapter.
     """
+
+    architecture: Optional[str] = "mamba"
     mh_adapter: bool = False
     output_adapter: bool = True
     reduction_factor: Union[float, Mapping] = 64
@@ -727,6 +729,7 @@ class ParallelMambaAdapterConfig(MambaAdapterConfig):
     Config class for MambaAdapter.
     """
     is_parallel: bool = True
+    architecture: Optional[str] = "par_mamba"
 
 
 @dataclass(eq=False)
@@ -736,6 +739,7 @@ class DoubleMambaAdapterConfig(MambaAdapterConfig):
     """
     mh_adapter: bool = True
     output_adapter: bool = True
+    architecture: Optional[str] = "houlsby_seq_mamba"
 
 
 @dataclass(eq=False)
@@ -746,6 +750,7 @@ class DoubleParallelMambaAdapterConfig(MambaAdapterConfig):
     mh_adapter: bool = True
     output_adapter: bool = True
     is_parallel: bool = True
+    architecture: Optional[str] = "houlsby_par_mamba"
 
 
 # IMPORTANT: When adding a new config here, also add it to docs/overview.md!

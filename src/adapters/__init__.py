@@ -64,6 +64,10 @@ _import_structure = {
         "SeqBnInvConfig",
         "StaticAdapterFusionConfig",
         "UniPELTConfig",
+        "MambaAdapterConfig",
+        "ParallelMambaAdapterConfig",
+        "DoubleMambaAdapterConfig",
+        "DoubleParallelMambaAdapterConfig",
     ],
     "context": [
         "AdapterSetup",
