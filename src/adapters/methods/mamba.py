@@ -58,8 +58,10 @@ class MambaLayer(ComposableAdapterLayerBase, nn.Module):
                     )
 
             if adapter_config.is_parallel:
+                print("Parallel Mamba")
                 adapter_class = ParallelMambaAdapter
             else:
+                print("Sequential Mamba")
                 adapter_class = MambaAdapter
             adapter = adapter_class(
                 adapter_name=adapter_name,

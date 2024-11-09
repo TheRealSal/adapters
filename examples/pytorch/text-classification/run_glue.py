@@ -20,7 +20,7 @@ import logging
 import os
 import random
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from typing import Optional
 
 import datasets
@@ -204,21 +204,28 @@ class ModelArguments:
     )
 
 
+@dataclass
+class AdapterConfig:
+    d_conv: Optional[int] = field(default=4)
+    d_state: Optional[int] = field(default=64)
+    expand: Optional[int] = field(default=2)
+
+
 def main():
     # See all possible arguments in src/transformers/training_args.py
     # or by passing the --help flag to this script.
     # We now keep distinct sets of args, for a cleaner separation of concerns.
 
-    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments, AdapterArguments))
+    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments, AdapterArguments, AdapterConfig))
 
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
         # let's parse it to get our arguments.
-        model_args, data_args, training_args, adapter_args = parser.parse_json_file(
+        model_args, data_args, training_args, adapter_args, adapter_config = parser.parse_json_file(
             json_file=os.path.abspath(sys.argv[1])
         )
     else:
-        model_args, data_args, training_args, adapter_args = parser.parse_args_into_dataclasses()
+        model_args, data_args, training_args, adapter_args, adapter_config = parser.parse_args_into_dataclasses()
 
     # Setup logging
     logging.basicConfig(
@@ -258,6 +265,8 @@ def main():
 
     # Set seed before initializing model.
     set_seed(training_args.seed)
+
+    adapter_config = asdict(adapter_config)
 
     # Get the datasets: you can either provide your own CSV/JSON training and evaluation files (see below)
     # or specify a GLUE benchmark task (the dataset will be downloaded automatically from the datasets Hub).
@@ -520,7 +529,7 @@ def main():
         data_collator = None
 
     # Setup adapters
-    setup_adapter_training(model, adapter_args, data_args.task_name or "glue")
+    setup_adapter_training(model, adapter_args, data_args.task_name or "glue", adapter_config)
     # Initialize our Trainer
     trainer_class = AdapterTrainer if adapter_args.train_adapter else Trainer
     trainer = trainer_class(

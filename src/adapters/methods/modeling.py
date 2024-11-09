@@ -481,7 +481,7 @@ class MambaAdapter(nn.Module):
         self.mamba = Mamba2(d_model=self.down_sample, # Model dimension d_model
                             d_state=config["mamba_state_size"],  # SSM state expansion factor, typically 64 or 128
                             d_conv=config["mamba_conv_kernel"],    # Local convolution width
-                            expand=config["mamba_expand_factor"])    # Block expansion factor
+                            expand=config["mamba_expand_factor"]).to("cuda")    # Block expansion factor
 
         # Up projection to input size
         if config["phm_layer"]:

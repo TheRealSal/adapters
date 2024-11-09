@@ -21,7 +21,7 @@ Fine-tuning the library models for sequence to sequence.
 import logging
 import os
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from typing import Optional
 
 import datasets
@@ -287,6 +287,13 @@ class DataTrainingArguments:
             self.val_max_target_length = self.max_target_length
 
 
+@dataclass
+class AdapterConfig:
+    d_conv: Optional[int] = field(default=4)
+    d_state: Optional[int] = field(default=64)
+    expand: Optional[int] = field(default=2)
+
+
 summarization_name_mapping = {
     "amazon_reviews_multi": ("review_body", "review_title"),
     "big_patent": ("description", "abstract"),
@@ -308,15 +315,17 @@ def main():
     # or by passing the --help flag to this script.
     # We now keep distinct sets of args, for a cleaner separation of concerns.
 
-    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments, AdapterArguments))
+    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments, AdapterArguments, AdapterConfig))
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
         # let's parse it to get our arguments.
-        model_args, data_args, training_args, adapter_args = parser.parse_json_file(
+        model_args, data_args, training_args, adapter_args, adapter_config = parser.parse_json_file(
             json_file=os.path.abspath(sys.argv[1])
         )
     else:
-        model_args, data_args, training_args, adapter_args = parser.parse_args_into_dataclasses()
+        model_args, data_args, training_args, adapter_args, adapter_config = parser.parse_args_into_dataclasses()
+
+    adapter_config = asdict(adapter_config)
 
     # Setup logging
     logging.basicConfig(
@@ -652,7 +661,7 @@ def main():
         training_args.load_best_model_at_end = True
 
     # Setup adapters
-    setup_adapter_training(model, adapter_args, data_args.dataset_name or "summarization")
+    setup_adapter_training(model, adapter_args, data_args.dataset_name or "summarization", adapter_config)
     # Initialize our Trainer
     trainer_class = Seq2SeqAdapterTrainer if adapter_args.train_adapter else Seq2SeqTrainer
     trainer = trainer_class(
