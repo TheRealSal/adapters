@@ -280,6 +280,7 @@ def main():
     #
     # In distributed training, the load_dataset function guarantee that only one local process can concurrently
     # download the dataset.
+
     if data_args.task_name is not None:
         # Downloading and loading a dataset from the hub.
         raw_datasets = load_dataset(
@@ -336,6 +337,8 @@ def main():
     # See more about loading any type of standard or custom dataset at
     # https://huggingface.co/docs/datasets/loading_datasets.html.
 
+    print("Loaded Dataset")
+
     # Labels
     if data_args.task_name is not None:
         is_regression = data_args.task_name == "stsb"
@@ -368,6 +371,7 @@ def main():
         revision=model_args.model_revision,
         token=model_args.token,
     )
+    print("Loaded Config")
     tokenizer = AutoTokenizer.from_pretrained(
         model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
@@ -375,6 +379,7 @@ def main():
         revision=model_args.model_revision,
         token=model_args.token,
     )
+    print("Loaded Tokenizer")
     # We use the AutoAdapterModel class here for better adapter support.
     model = AutoAdapterModel.from_pretrained(
         model_args.model_name_or_path,
@@ -385,6 +390,7 @@ def main():
         token=model_args.token,
         ignore_mismatched_sizes=model_args.ignore_mismatched_sizes,
     )
+    print("Loaded Model")
 
     # Convert the model into an adapter model
     adapters.init(model)
