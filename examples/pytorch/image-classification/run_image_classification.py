@@ -19,6 +19,7 @@ import sys
 from dataclasses import dataclass, field
 from typing import Optional
 
+import adapters
 import evaluate
 import numpy as np
 import torch
@@ -36,6 +37,7 @@ from torchvision.transforms import (
 )
 
 import transformers
+from adapters import AdapterArguments, AdapterTrainer, AutoAdapterModel, setup_adapter_training
 from transformers import (
     MODEL_FOR_IMAGE_CLASSIFICATION_MAPPING,
     AutoConfig,
@@ -49,6 +51,12 @@ from transformers import (
 from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils import check_min_version, send_example_telemetry
 from transformers.utils.versions import require_version
+
+@dataclass
+class AdapterConfig:
+    d_conv: Optional[int] = field(default=4)
+    d_state: Optional[int] = field(default=64)
+    expand: Optional[int] = field(default=2)
 
 
 """ Fine-tuning a 🤗 Transformers model for image classification"""
@@ -181,17 +189,17 @@ def main():
     # or by passing the --help flag to this script.
     # We now keep distinct sets of args, for a cleaner separation of concerns.
 
-    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
+    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments, AdapterArguments))
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
         # let's parse it to get our arguments.
-        model_args, data_args, training_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
+        model_args, data_args, training_args, adapter_args, adapter_config = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
     else:
-        model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+        model_args, data_args, training_args, adapter_args, adapter_config = parser.parse_args_into_dataclasses()
 
     # Sending telemetry. Tracking the example usage helps us better allocate resources to maintain them. The
     # information sent is the one passed as arguments along with your Python/PyTorch versions.
-    send_example_telemetry("run_image_classification", model_args, data_args)
+    #send_example_telemetry("run_image_classification", model_args, data_args)
 
     # Setup logging
     logging.basicConfig(
@@ -242,7 +250,7 @@ def main():
             data_args.dataset_config_name,
             cache_dir=model_args.cache_dir,
             token=model_args.token,
-            trust_remote_code=model_args.trust_remote_code,
+            #trust_remote_code=model_args.trust_remote_code,
         )
     else:
         data_files = {}
@@ -291,7 +299,7 @@ def main():
         id2label[str(i)] = label
 
     # Load the accuracy metric from the datasets package
-    metric = evaluate.load("accuracy", cache_dir=model_args.cache_dir)
+    metric = evaluate.load("../metrics/accuracy.py", cache_dir=model_args.cache_dir)
 
     # Define our compute_metrics function. It takes an `EvalPrediction` object (a namedtuple with a
     # predictions and label_ids field) and has to return a dictionary string to float.
@@ -389,6 +397,9 @@ def main():
         # Set the validation transforms
         dataset["validation"].set_transform(val_transforms)
 
+    # Setup adapters
+    setup_adapter_training(model, adapter_args, data_args.dataset_name, adapter_config)
+
     # Initialize our trainer
     trainer = Trainer(
         model=model,
@@ -418,6 +429,8 @@ def main():
         metrics = trainer.evaluate()
         trainer.log_metrics("eval", metrics)
         trainer.save_metrics("eval", metrics)
+
+    print(model.adapter_summary())
 
     # Write model card and (optionally) push to hub
     kwargs = {
