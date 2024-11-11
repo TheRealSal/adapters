@@ -23,6 +23,7 @@ import adapters
 import evaluate
 import numpy as np
 import torch
+import wandb
 from datasets import load_dataset
 from PIL import Image
 from torchvision.transforms import (
@@ -398,8 +399,15 @@ def main():
         dataset["validation"].set_transform(val_transforms)
 
     # Setup adapters
+    adapters.init(model)
     adapter_config = asdict(adapter_config)
     setup_adapter_training(model, adapter_args, data_args.dataset_name, adapter_config)
+
+    # WandB Customization
+    wandb.init(
+        tags=[data_args.dataset_name, adapter_args.adapter_config],
+        group=data_args.dataset_name,
+    )
 
     # Initialize our trainer
     trainer = Trainer(
