@@ -635,6 +635,8 @@ def main():
         kwargs["dataset_args"] = data_args.task_name
         kwargs["dataset"] = f"GLUE {data_args.task_name.upper()}"
 
+    print(model.adapter_summary())
+
     if training_args.push_to_hub:
         trainer.push_to_hub(**kwargs)
     else:

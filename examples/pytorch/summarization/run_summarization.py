@@ -757,6 +757,8 @@ def main():
     if data_args.lang is not None:
         kwargs["language"] = data_args.lang
 
+    print(model.adapter_summary())
+
     if training_args.push_to_hub:
         trainer.push_to_hub(**kwargs)
     else:
