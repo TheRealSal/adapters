@@ -47,6 +47,7 @@ from transformers import (
     Trainer,
     TrainingArguments,
     set_seed,
+    ViTForImageClassification,
 )
 from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils.versions import require_version
@@ -317,7 +318,7 @@ def main():
         token=model_args.token,
         trust_remote_code=model_args.trust_remote_code,
     )
-    model = AutoAdapterModel.from_pretrained(
+    model = ViTForImageClassification.from_pretrained(
         model_args.model_name_or_path,
         from_tf=bool(".ckpt" in model_args.model_name_or_path),
         config=config,
