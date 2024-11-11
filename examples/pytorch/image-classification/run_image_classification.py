@@ -16,7 +16,7 @@
 import logging
 import os
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from typing import Optional
 
 import adapters
@@ -398,6 +398,7 @@ def main():
         dataset["validation"].set_transform(val_transforms)
 
     # Setup adapters
+    adapter_config = asdict(adapter_config)
     setup_adapter_training(model, adapter_args, data_args.dataset_name, adapter_config)
 
     # Initialize our trainer
@@ -407,7 +408,7 @@ def main():
         train_dataset=dataset["train"] if training_args.do_train else None,
         eval_dataset=dataset["validation"] if training_args.do_eval else None,
         compute_metrics=compute_metrics,
-        processing_class=image_processor,
+        tokenizer=image_processor,
         data_collator=collate_fn,
     )
 
