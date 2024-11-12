@@ -210,6 +210,7 @@ class AdapterConfig:
     d_state: Optional[int] = field(default=64)
     expand: Optional[int] = field(default=2)
     reduction_factor: Optional[int] = field(default=64)
+    is_bidirectional: Optional[bool] = field(default=False)
 
 
 def main():

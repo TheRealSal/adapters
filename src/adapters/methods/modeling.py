@@ -486,10 +486,13 @@ class MambaAdapter(nn.Module):
         self.adapter_down = nn.Sequential(*seq_list)
 
         # Mamba Adapter
-        self.mamba = Mamba2(d_model=self.down_sample, # Model dimension d_model
-                            d_state=config["mamba_state_size"],  # SSM state expansion factor, typically 64 or 128
-                            d_conv=config["mamba_conv_kernel"],    # Local convolution width
-                            expand=config["mamba_expand_factor"]).to("cuda")    # Block expansion factor
+        if config["is_bidirectional"]:
+            self.mamba = BidirectionalMambaBlock(d_model=self.down_sample, config=config)
+        else:
+            self.mamba = Mamba2(d_model=self.down_sample, # Model dimension d_model
+                                d_state=config["mamba_state_size"],  # SSM state expansion factor, typically 64 or 128
+                                d_conv=config["mamba_conv_kernel"],    # Local convolution width
+                                expand=config["mamba_expand_factor"]).to("cuda")    # Block expansion factor
 
         # Up projection to input size
         if config["phm_layer"]:
@@ -734,6 +737,27 @@ class ParallelMambaAdapter(MambaAdapter):
 
         return hidden_states
 
+
+class BidirectionalMambaBlock(nn.Module):
+    def __init__(self, d_model, config: BnConfig):
+        self.forward = Mamba2(d_model=d_model,
+                            d_state=config["mamba_state_size"],
+                            d_conv=config["mamba_conv_kernel"],
+                            expand=config["mamba_expand_factor"]).to("cuda")
+
+        self.backward = Mamba2(d_model=d_model,
+                            d_state=config["mamba_state_size"],
+                            d_conv=config["mamba_conv_kernel"],
+                            expand=config["mamba_expand_factor"]).to("cuda")
+
+    def forward(self, x):
+        forward = self.forward(x)
+
+        backward_x = x.flip(1)
+        backward = self.backward(backward_x)
+        backward = backward.flip(1)
+
+        return forward + backward
 
 # Invertible Adapters
 
