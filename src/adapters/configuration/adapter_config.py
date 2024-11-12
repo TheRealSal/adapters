@@ -721,7 +721,7 @@ class MambaAdapterConfig(BnConfig):
     mamba_state_size: int = 64
     mamba_conv_kernel: int = 4
     mamba_expand_factor: int = 2
-    is_frozen: bool = False
+    frozen_proj: bool = False
 
 
 @dataclass(eq=False)
