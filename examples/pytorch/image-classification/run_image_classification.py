@@ -57,6 +57,7 @@ class AdapterConfig:
     d_conv: Optional[int] = field(default=4)
     d_state: Optional[int] = field(default=64)
     expand: Optional[int] = field(default=2)
+    reduction_factor: Optional[int] = field(default=64)
 
 
 """ Fine-tuning a 🤗 Transformers model for image classification"""
