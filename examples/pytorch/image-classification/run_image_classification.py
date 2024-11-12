@@ -407,6 +407,7 @@ def main():
     wandb.init(
         tags=[data_args.dataset_name, adapter_args.adapter_config],
         group=data_args.dataset_name,
+        name=training_args.run_name,
     )
 
     # Initialize our trainer
