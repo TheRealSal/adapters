@@ -721,6 +721,7 @@ class MambaAdapterConfig(BnConfig):
     mamba_state_size: int = 64
     mamba_conv_kernel: int = 4
     mamba_expand_factor: int = 2
+    is_frozen: bool = False
 
 
 @dataclass(eq=False)
@@ -789,6 +790,7 @@ ADAPTER_CONFIG_MAP = {
     "shared_scaled_par_mamba": ParallelMambaAdapterConfig(scaling="learned", shared_proj=True),
     "shared_scaled_double_mamba": DoubleMambaAdapterConfig(scaling="learned", shared_proj=True),
     "shared_scaled_double_parallel_mamba": DoubleParallelMambaAdapterConfig(scaling="learned", shared_proj=True),
+    "frozen_shared_scaled_double_parallel_mamba": DoubleParallelMambaAdapterConfig(scaling="learned", shared_proj=True, frozen_proj=True),
 }
 
 DEFAULT_ADAPTER_CONFIG = "seq_bn"

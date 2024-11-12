@@ -464,6 +464,14 @@ class MambaAdapter(nn.Module):
         elif config["shared_proj"]:
             if MambaAdapter.shared_down is None:
                 MambaAdapter.shared_down = nn.Linear(self.input_size, self.down_sample)
+            if config["frozen_proj"]:
+                # Initialize down projection using Kaiming
+                nn.init.kaiming_uniform_(MambaAdapter.shared_down.weight, a=math.sqrt(5))
+                if MambaAdapter.shared_down.bias is not None:
+                    nn.init.zeros_(MambaAdapter.shared_down.bias)
+                # Freeze
+                for param in MambaAdapter.shared_down.parameters():
+                    param.requires_grad = False
             seq_list.append(MambaAdapter.shared_down)
         else:
             seq_list.append(nn.Linear(self.input_size, self.down_sample))
@@ -490,7 +498,12 @@ class MambaAdapter(nn.Module):
         elif config["shared_proj"]:
             if MambaAdapter.shared_up is None:
                 MambaAdapter.shared_up = nn.Linear(self.down_sample, self.input_size)
-
+            if config["frozen_proj"]:
+                nn.init.kaiming_uniform_(MambaAdapter.shared_up.weight, a=math.sqrt(5))
+                if MambaAdapter.shared_up.bias is not None:
+                    nn.init.zeros_(MambaAdapter.shared_up.bias)
+                for param in MambaAdapter.shared_up.parameters():
+                    param.requires_grad = False
             self.adapter_up = MambaAdapter.shared_up
         else:
             self.adapter_up = nn.Linear(self.down_sample, self.input_size)
