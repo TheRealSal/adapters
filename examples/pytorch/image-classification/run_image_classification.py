@@ -402,7 +402,10 @@ def main():
     # Setup adapters
     adapters.init(model)
     adapter_config = asdict(adapter_config)
-    setup_adapter_training(model, adapter_args, data_args.dataset_name, adapter_config)
+
+    run_name = f"{data_args.dataset_name}/{data_args.run_name}/{training_args.seed}"
+
+    setup_adapter_training(model, adapter_args, run_name, adapter_config)
 
     # WandB Customization
     wandb.init(
