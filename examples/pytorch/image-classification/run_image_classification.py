@@ -403,7 +403,7 @@ def main():
     adapters.init(model)
     adapter_config = asdict(adapter_config)
 
-    run_name = f"{data_args.dataset_name}/{data_args.run_name}/{training_args.seed}"
+    run_name = f"{data_args.dataset_name}/{training_args.run_name}/{training_args.seed}"
 
     setup_adapter_training(model, adapter_args, run_name, adapter_config)
 
