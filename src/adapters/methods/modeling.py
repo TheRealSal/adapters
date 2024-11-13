@@ -458,15 +458,19 @@ class MambaAdapter(nn.Module):
         if self.down_sample < 1:
             self.down_sample = 1
 
-        if config["phm_layer"]:
-            # Linear down projection of the input
-            seq_list.append(PHMLayer(adapter_name, self.input_size, self.down_sample, "down", config))
-        elif config["shared_proj"]:
+        # is a non-causal convolution
+        if config["is_noncausal"]:
+            global causal_conv1d_fn
+            causal_conv1d_fn = None  # This disables causal_conv1d
+
+        if config["shared_proj"]:
             if MambaAdapter.shared_down is None:
                 MambaAdapter.shared_down = nn.Linear(self.input_size, self.down_sample)
+                if config["initialization"] == "kaiming":
+                    nn.init.kaiming_normal_(MambaAdapter.shared_down.weight, nonlinearity=config["non_linearity"])
             if config["frozen_proj"]:
                 # Initialize down projection using Kaiming
-                nn.init.kaiming_uniform_(MambaAdapter.shared_down.weight, a=math.sqrt(5))
+                nn.init.kaiming_normal_(MambaAdapter.shared_down.weight, a=math.sqrt(5))
                 if MambaAdapter.shared_down.bias is not None:
                     nn.init.zeros_(MambaAdapter.shared_down.bias)
                 # Freeze
@@ -477,9 +481,9 @@ class MambaAdapter(nn.Module):
             seq_list.append(nn.Linear(self.input_size, self.down_sample))
 
         # select non-linearity
-        self.non_linearity = Activation_Function_Class(config["non_linearity"].lower())
-
-        seq_list.append(self.non_linearity)
+        if config["non_linearity"] != "None":
+            self.non_linearity = Activation_Function_Class(config["non_linearity"].lower())
+            seq_list.append(self.non_linearity)
 
         # sequential adapter, first downproject, then non-linearity then upsample. In the forward pass we include the
         # residual connection
@@ -495,14 +499,13 @@ class MambaAdapter(nn.Module):
                                 expand=config["mamba_expand_factor"]).to("cuda")    # Block expansion factor
 
         # Up projection to input size
-        if config["phm_layer"]:
-            # Linear down projection of the input
-            self.adapter_up = PHMLayer(adapter_name, self.down_sample, self.input_size, "up", config)
-        elif config["shared_proj"]:
+        if config["shared_proj"]:
             if MambaAdapter.shared_up is None:
                 MambaAdapter.shared_up = nn.Linear(self.down_sample, self.input_size)
+                if config["initialization"] == "kaiming":
+                    nn.init.kaiming_normal_(MambaAdapter.shared_down.weight, nonlinearity=config["non_linearity"])
             if config["frozen_proj"]:
-                nn.init.kaiming_uniform_(MambaAdapter.shared_up.weight, a=math.sqrt(5))
+                nn.init.kaiming_normal_(MambaAdapter.shared_up.weight, a=math.sqrt(5))
                 if MambaAdapter.shared_up.bias is not None:
                     nn.init.zeros_(MambaAdapter.shared_up.bias)
                 for param in MambaAdapter.shared_up.parameters():

@@ -723,6 +723,8 @@ class MambaAdapterConfig(BnConfig):
     mamba_expand_factor: int = 2
     frozen_proj: bool = False
     is_bidirectional: bool = False
+    is_noncausal: bool = False
+    initialization: str = "random"
 
 
 @dataclass(eq=False)
