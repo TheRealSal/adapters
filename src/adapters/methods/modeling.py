@@ -752,14 +752,14 @@ class ParallelMambaAdapter(MambaAdapter):
 class BidirectionalMambaBlock(nn.Module):
     def __init__(self, d_model, config: MambaAdapterConfig):
         self.forward = Mamba(d_model=d_model,
-                            d_state=config["mamba_state_size"],
-                            d_conv=config["mamba_conv_kernel"],
-                            expand=config["mamba_expand_factor"]).to("cuda")
+                            d_state=config["d_state"],
+                            d_conv=config["d_conv"],
+                            expand=config["expand"]).to("cuda")
 
         self.backward = Mamba(d_model=d_model,
-                            d_state=config["mamba_state_size"],
-                            d_conv=config["mamba_conv_kernel"],
-                            expand=config["mamba_expand_factor"]).to("cuda")
+                            d_state=config["d_state"],
+                            d_conv=config["d_conv"],
+                            expand=config["expand"]).to("cuda")
 
     def forward(self, x):
         forward = self.forward(x)
