@@ -58,6 +58,7 @@ class BottleneckLayer(ComposableAdapterLayerBase, nn.Module):
 
     def add_adapter(self, adapter_name: str, layer_idx: int) -> bool:
         self.layer_idx = layer_idx
+        print("Bottleneck add_adapter")
         adapter_config = self.adapters_config.match(
             adapter_name,
             config_type=BnConfig,

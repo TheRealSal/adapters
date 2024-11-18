@@ -20,6 +20,7 @@ from ..context import ForwardContext
 from .adapter_layer_base import ComposableAdapterLayerBase
 from .modeling import BertFusion, MambaAdapter, ParallelMambaAdapter
 
+
 class MambaLayer(ComposableAdapterLayerBase, nn.Module):
     adapter_modules_name = "adapters"
     supported_compositions = [Stack, Fuse, Split, Parallel, BatchSplit, Average]
@@ -37,6 +38,7 @@ class MambaLayer(ComposableAdapterLayerBase, nn.Module):
 
     def add_adapter(self, adapter_name: str, layer_idx: int) -> bool:
         self.layer_idx = layer_idx
+        print("Mamba add_adapter")
         adapter_config = self.adapters_config.match(
             adapter_name,
             config_type=MambaAdapterConfig,

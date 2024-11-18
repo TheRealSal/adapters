@@ -51,6 +51,8 @@ class Adapter(nn.Module):
         self.adapter_residual_before_ln = config["adapter_residual_before_ln"]
         self.use_gating = config["use_gating"]
 
+        print("Creating a bottleneck adapter")
+
         # Params related to input & output of adapter
         self.residual_before_ln = config["residual_before_ln"]
         self.original_ln_before = config["original_ln_before"]
@@ -436,6 +438,8 @@ class MambaAdapter(nn.Module):
         self.adapter_residual_before_ln = config["adapter_residual_before_ln"]
         self.use_gating = config["use_gating"]
 
+        print("Creating a Mamba Adapter")
+
         # Params related to input & output of adapter
         self.residual_before_ln = config["residual_before_ln"]
         self.original_ln_before = config["original_ln_before"]
@@ -460,15 +464,18 @@ class MambaAdapter(nn.Module):
 
         # is a non-causal convolution
         if config["is_noncausal"]:
+            print("Non-Causal")
             global causal_conv1d_fn
             causal_conv1d_fn = None  # This disables causal_conv1d
 
         if config["shared_proj"]:
+            print("Shared Projections")
             if MambaAdapter.shared_down is None:
                 MambaAdapter.shared_down = nn.Linear(self.input_size, self.down_sample)
                 if config["initialization"] == "kaiming":
                     nn.init.kaiming_normal_(MambaAdapter.shared_down.weight, nonlinearity=config["non_linearity"])
             if config["frozen_proj"]:
+                print("Frozen projections")
                 # Initialize down projection using Kaiming
                 nn.init.kaiming_normal_(MambaAdapter.shared_down.weight, a=math.sqrt(5))
                 if MambaAdapter.shared_down.bias is not None:
@@ -478,6 +485,7 @@ class MambaAdapter(nn.Module):
                     param.requires_grad = False
             seq_list.append(MambaAdapter.shared_down)
         else:
+            print("Projections not shared")
             seq_list.append(nn.Linear(self.input_size, self.down_sample))
 
         # select non-linearity
@@ -664,7 +672,7 @@ class ParallelMambaAdapter(MambaAdapter):
         Implementation of a parallel Mamba adapter block.
         """
 
-    def __init__(self, adapter_name, input_size, down_sample, config: BnConfig):
+    def __init__(self, adapter_name, input_size, down_sample, config: MambaAdapterConfig):
         super().__init__(adapter_name, input_size, down_sample, config)
 
     def pre_forward(
@@ -742,7 +750,7 @@ class ParallelMambaAdapter(MambaAdapter):
 
 
 class BidirectionalMambaBlock(nn.Module):
-    def __init__(self, d_model, config: BnConfig):
+    def __init__(self, d_model, config: MambaAdapterConfig):
         self.forward = Mamba2(d_model=d_model,
                             d_state=config["mamba_state_size"],
                             d_conv=config["mamba_conv_kernel"],

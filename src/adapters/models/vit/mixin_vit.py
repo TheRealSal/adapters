@@ -55,6 +55,7 @@ class ViTModelAdaptersMixin(ModelBaseAdaptersMixin):
     """Adds adapters to the ViTModel class."""
 
     def init_adapters(self, model_config, adapters_config):
+        print("VitModelAdaptersMixin init_adapters")
         super().init_adapters(model_config, adapters_config)
 
         # Register hook for post embedding forward

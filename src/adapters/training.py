@@ -50,14 +50,19 @@ def setup_adapter_training(
     Returns:
         Tuple[str, str]: A tuple containing the names of the loaded adapters.
     """
+    print("Setting up adapter")
     if adapter_config_kwargs is None:
         adapter_config_kwargs = {}
     if adapter_load_kwargs is None:
         adapter_load_kwargs = {}
     # Setup adapters
     if adapter_args.train_adapter:
+        print("Train adapter")
         # resolve the adapter config
         adapter_config = AdapterConfig.load(adapter_args.adapter_config, **adapter_config_kwargs)
+        print(model.adapters_config)
+        print("---------")
+        print(adapter_config)
         # load a pre-trained from Hub if specified
         # note: this logic has changed in versions > 3.1.0: adapter is also loaded if it already exists
         if adapter_args.load_adapter:
@@ -67,8 +72,11 @@ def setup_adapter_training(
                 load_as=adapter_name,
                 **adapter_load_kwargs,
             )
+            print("Loaded adapter")
         # otherwise, if adapter does not exist, add it
         elif adapter_name not in model.adapters_config:
+            print("Adapter name not in model.adapters_config. Creating it")
+            print(f"Model: {model}")
             model.add_adapter(adapter_name, config=adapter_config)
         # optionally load a pre-trained language adapter
         if adapter_args.load_lang_adapter:

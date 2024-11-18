@@ -394,6 +394,7 @@ class ModelAdaptersMixin(PushAdapterToHubMixin, ABC):
 
     def _init_adapters_submodules(self, model_config, adapters_config):
         # Initialize adapters in all submodules
+        print("ModelAdaptersMixin _init_adapters_submodules")
         for module in self.modules():
             # skip calling module
             if module == self:
@@ -408,6 +409,7 @@ class ModelAdaptersMixin(PushAdapterToHubMixin, ABC):
         """
         This method initializes adapter modules and fusion modules from the model config.
         """
+        print("ModelAdaptersMixin init_adapters")
         self.base_model.shared_parameters = nn.ModuleDict()
 
         # Initialize adapters config
@@ -1352,6 +1354,7 @@ class ModelBaseAdaptersMixin(ModelAdaptersMixin):
     add_base_adapters = True
 
     def init_adapters(self, model_config, adapters_config, add_prefix_tuning_pool=True):
+        print("ModelBaseAdaptersMixin init_adapters")
         super().init_adapters(model_config, adapters_config, add_prefix_tuning_pool)
 
         patch_forward(self)

@@ -78,6 +78,7 @@ def init_adapters_config(
             adapters_config (ModelAdaptersConfig): The adapters config to be added.
     """
     # Make sure config is wrapped
+    print("configuration.py init_adapters_config")
     model.config = model_config
     wrap_config(model.config)
 
