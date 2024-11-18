@@ -718,9 +718,9 @@ class MambaAdapterConfig(BnConfig):
     output_adapter: bool = True
     reduction_factor: Union[float, Mapping] = 64
     non_linearity: str = "relu"
-    mamba_state_size: int = 64
-    mamba_conv_kernel: int = 4
-    mamba_expand_factor: int = 2
+    d_state: int = 64
+    d_conv: int = 4
+    expand: int = 2
     frozen_proj: bool = False
     is_bidirectional: bool = False
     is_noncausal: bool = False
