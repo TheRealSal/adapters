@@ -16,7 +16,7 @@ from ..composition import (
 from ..configuration import BnConfig
 from ..context import ForwardContext
 from .adapter_layer_base import ComposableAdapterLayerBase
-from .modeling import Adapter, BertFusion, ParallelAdapter
+from .modeling import Adapter, BertFusion, ParallelAdapter, ParallelMambaAdapter, MambaAdapter
 
 
 class BottleneckState(NamedTuple):
@@ -59,12 +59,14 @@ class BottleneckLayer(ComposableAdapterLayerBase, nn.Module):
     def add_adapter(self, adapter_name: str, layer_idx: int) -> bool:
         self.layer_idx = layer_idx
         print("Bottleneck add_adapter")
+
         adapter_config = self.adapters_config.match(
             adapter_name,
             config_type=BnConfig,
             layer_idx=self.layer_idx,
             location_key=self.location_key,
         )
+        print(f'After matching: {adapter_config}')
         if adapter_config is not None:
             reduction_factor = adapter_config["reduction_factor"]
             if isinstance(reduction_factor, Mapping):
@@ -79,10 +81,16 @@ class BottleneckLayer(ComposableAdapterLayerBase, nn.Module):
                         '{"1": 16, "default": 16}'
                     )
 
-            if adapter_config.is_parallel:
-                adapter_class = ParallelAdapter
-            else:
-                adapter_class = Adapter
+            if "mamba" in adapter_config.architecture:
+                if adapter_config.is_parallel:
+                    adapter_class = ParallelMambaAdapter
+                else:
+                    adapter_class = MambaAdapter
+            else:  # is a regular bottleneck
+                if adapter_config.is_parallel:
+                    adapter_class = ParallelAdapter
+                else:
+                    adapter_class = Adapter
             adapter = adapter_class(
                 adapter_name=adapter_name,
                 input_size=self.model_config.hidden_size,
