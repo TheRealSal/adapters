@@ -55,11 +55,12 @@ from transformers.utils.versions import require_version
 @dataclass
 class AdapterConfig:
     d_conv: Optional[int] = field(default=4)
-    d_state: Optional[int] = field(default=64)
+    d_state: Optional[int] = field(default=16)
     expand: Optional[int] = field(default=2)
     reduction_factor: Optional[int] = field(default=64)
     is_bidirectional: Optional[bool] = field(default=False)
     is_noncausal: Optional[bool] = field(default=False)
+    non_linearity: Optional[str] = field(default='None')
 
 
 """ Fine-tuning a 🤗 Transformers model for image classification"""

@@ -501,7 +501,7 @@ class MambaAdapter(nn.Module):
         if config["is_bidirectional"]:
             self.mamba = BidirectionalMambaBlock(d_model=self.down_sample, config=config)
         else:
-            self.mamba = Mamba2(d_model=self.down_sample, # Model dimension d_model
+            self.mamba = Mamba(d_model=self.down_sample, # Model dimension d_model
                                 d_state=config["mamba_state_size"],  # SSM state expansion factor, typically 64 or 128
                                 d_conv=config["mamba_conv_kernel"],    # Local convolution width
                                 expand=config["mamba_expand_factor"]).to("cuda")    # Block expansion factor
@@ -751,12 +751,12 @@ class ParallelMambaAdapter(MambaAdapter):
 
 class BidirectionalMambaBlock(nn.Module):
     def __init__(self, d_model, config: MambaAdapterConfig):
-        self.forward = Mamba2(d_model=d_model,
+        self.forward = Mamba(d_model=d_model,
                             d_state=config["mamba_state_size"],
                             d_conv=config["mamba_conv_kernel"],
                             expand=config["mamba_expand_factor"]).to("cuda")
 
-        self.backward = Mamba2(d_model=d_model,
+        self.backward = Mamba(d_model=d_model,
                             d_state=config["mamba_state_size"],
                             d_conv=config["mamba_conv_kernel"],
                             expand=config["mamba_expand_factor"]).to("cuda")
