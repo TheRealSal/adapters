@@ -720,7 +720,12 @@ class ParallelMambaAdapter(MambaAdapter):
         return input_tensor, query, input_tensor
 
     def forward(self, x, residual_input, output_gating=False):
-        down = self.adapter_down(x)
+        if self.conv_proj:
+            x = x.permute(0, 2, 1)
+            down = self.adapter_down(x)
+            down = down.permute(0, 2, 1)
+        else:
+            down = self.adapter_down(x)
 
         down = self.mamba(down)
 
