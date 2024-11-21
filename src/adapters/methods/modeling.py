@@ -481,7 +481,12 @@ class MambaAdapter(nn.Module):
             seq_list.append(MambaAdapter.shared_down)
         else:
             print("Projections not shared")
-            seq_list.append(nn.Linear(self.input_size, self.down_sample))
+            if config["conv_down_proj"]:
+                seq_list.append(nn.Conv1d(in_channels=self.input_size,
+                                            out_channels=self.down_sample,
+                                            kernel_size=1))
+            else:
+                seq_list.append(nn.Linear(self.input_size, self.down_sample))
 
         # select non-linearity
         if config["non_linearity"] != "None":
