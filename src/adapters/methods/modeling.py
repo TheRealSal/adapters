@@ -471,18 +471,13 @@ class MambaAdapter(nn.Module):
         if config["shared_proj"]:
             print("Shared Projections")
             if MambaAdapter.shared_down is None:
-                MambaAdapter.shared_down = nn.Linear(self.input_size, self.down_sample)
-                if config["initialization"] == "kaiming":
-                    nn.init.kaiming_normal_(MambaAdapter.shared_down.weight, nonlinearity=config["non_linearity"])
-            if config["frozen_proj"]:
-                print("Frozen projections")
-                # Initialize down projection using Kaiming
-                nn.init.kaiming_normal_(MambaAdapter.shared_down.weight, a=math.sqrt(5))
-                if MambaAdapter.shared_down.bias is not None:
-                    nn.init.zeros_(MambaAdapter.shared_down.bias)
-                # Freeze
-                for param in MambaAdapter.shared_down.parameters():
-                    param.requires_grad = False
+                if config["conv_down_proj"]:
+                    MambaAdapter.shared_down = nn.Conv1d(in_channels=self.input_size,
+                                                         out_channels=self.down_sample,
+                                                         kernel_size=1)
+                else:
+                    MambaAdapter.shared_down = nn.Linear(self.input_size, self.down_sample)
+
             seq_list.append(MambaAdapter.shared_down)
         else:
             print("Projections not shared")
@@ -492,6 +487,19 @@ class MambaAdapter(nn.Module):
         if config["non_linearity"] != "None":
             self.non_linearity = Activation_Function_Class(config["non_linearity"].lower())
             seq_list.append(self.non_linearity)
+
+        # Frozen projections and weight initialization
+        if config["initialization"] == "kaiming":
+            nn.init.kaiming_normal_(MambaAdapter.shared_down.weight, nonlinearity=config["non_linearity"])
+        if config["frozen_proj"]:
+            print("Frozen projections")
+            # Initialize down projection using Kaiming
+            nn.init.kaiming_normal_(MambaAdapter.shared_down.weight, nonlinearity=config["non_linearity"])
+            if MambaAdapter.shared_down.bias is not None:
+                nn.init.zeros_(MambaAdapter.shared_down.bias)
+            # Freeze
+            for param in MambaAdapter.shared_down.parameters():
+                param.requires_grad = False
 
         # sequential adapter, first downproject, then non-linearity then upsample. In the forward pass we include the
         # residual connection
@@ -541,21 +549,21 @@ class MambaAdapter(nn.Module):
         self.dropout = nn.Dropout(p=config["dropout"])
 
         # if we want to initialize with the bert strategy then this function is called for all the linear layers
-        if config["init_weights"] == "bert":
-            self.adapter_down.apply(self.init_bert_weights)
-            self.adapter_up.apply(self.init_bert_weights)
-            if self.use_gating:
-                self.gate.apply(self.init_bert_weights)
-        elif config["init_weights"] == "mam_adapter":
-            with torch.no_grad():
-                nn.init.kaiming_uniform_(self.adapter_down[0].weight, a=math.sqrt(5))
-                nn.init.zeros_(self.adapter_up.weight)
-                nn.init.zeros_(self.adapter_down[0].bias)
-                nn.init.zeros_(self.adapter_up.bias)
-                if self.use_gating:
-                    self.gate.apply(self.init_bert_weights)
-        else:
-            raise ValueError("Unknown init_weights type: {}".format(config["init_weights"]))
+        # if config["init_weights"] == "bert":
+        #     self.adapter_down.apply(self.init_bert_weights)
+        #     self.adapter_up.apply(self.init_bert_weights)
+        #     if self.use_gating:
+        #         self.gate.apply(self.init_bert_weights)
+        # elif config["init_weights"] == "mam_adapter":
+        #     with torch.no_grad():
+        #         nn.init.kaiming_uniform_(self.adapter_down[0].weight, a=math.sqrt(5))
+        #         nn.init.zeros_(self.adapter_up.weight)
+        #         nn.init.zeros_(self.adapter_down[0].bias)
+        #         nn.init.zeros_(self.adapter_up.bias)
+        #         if self.use_gating:
+        #             self.gate.apply(self.init_bert_weights)
+        # else:
+        #     raise ValueError("Unknown init_weights type: {}".format(config["init_weights"]))
 
     def pre_forward(
         self,

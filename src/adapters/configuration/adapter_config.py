@@ -725,6 +725,7 @@ class MambaAdapterConfig(BnConfig):
     is_bidirectional: bool = False
     is_noncausal: bool = False
     initialization: str = "random"
+    conv_down_proj: Optional[bool] = field(default=False)
 
 
 @dataclass(eq=False)

@@ -61,6 +61,7 @@ class AdapterConfig:
     is_bidirectional: Optional[bool] = field(default=False)
     is_noncausal: Optional[bool] = field(default=False)
     non_linearity: Optional[str] = field(default='None')
+    conv_down_proj: Optional[bool] = field(default=False)
 
 
 """ Fine-tuning a 🤗 Transformers model for image classification"""
