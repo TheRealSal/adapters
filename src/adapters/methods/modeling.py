@@ -440,6 +440,8 @@ class MambaAdapter(nn.Module):
 
         print("Creating a Mamba Adapter")
 
+        self.conv_proj = config["conv_down_proj"]
+
         # Params related to input & output of adapter
         self.residual_before_ln = config["residual_before_ln"]
         self.original_ln_before = config["original_ln_before"]
@@ -614,7 +616,12 @@ class MambaAdapter(nn.Module):
         return hidden_states, query, residual
 
     def forward(self, x, residual_input, output_gating=False):
-        down = self.adapter_down(x)
+        if self.conv_proj:
+            x = x.permute(0, 2, 1)
+            down = self.adapter_down(x)
+            down = down.permute(0, 2, 1)
+        else:
+            down = self.adapter_down(x)
 
         down = self.mamba(down)
 
