@@ -207,12 +207,13 @@ class ModelArguments:
 @dataclass
 class AdapterConfig:
     d_conv: Optional[int] = field(default=4)
-    d_state: Optional[int] = field(default=64)
+    d_state: Optional[int] = field(default=16)
     expand: Optional[int] = field(default=2)
     reduction_factor: Optional[int] = field(default=64)
     is_bidirectional: Optional[bool] = field(default=False)
     is_noncausal: Optional[bool] = field(default=False)
     conv_down_proj: Optional[bool] = field(default=False)
+    is_parallel: Optional[bool] = field(default=False)
 
 
 def main():
