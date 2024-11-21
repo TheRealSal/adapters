@@ -81,7 +81,7 @@ class BottleneckLayer(ComposableAdapterLayerBase, nn.Module):
                         '{"1": 16, "default": 16}'
                     )
 
-            if "mamba" in adapter_config.architecture:
+            if adapter_config.architecture and "mamba" in adapter_config.architecture:
                 if adapter_config.is_parallel:
                     adapter_class = ParallelMambaAdapter
                 else:
