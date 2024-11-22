@@ -58,7 +58,6 @@ class BottleneckLayer(ComposableAdapterLayerBase, nn.Module):
 
     def add_adapter(self, adapter_name: str, layer_idx: int) -> bool:
         self.layer_idx = layer_idx
-        print("Bottleneck add_adapter")
 
         adapter_config = self.adapters_config.match(
             adapter_name,
@@ -66,7 +65,6 @@ class BottleneckLayer(ComposableAdapterLayerBase, nn.Module):
             layer_idx=self.layer_idx,
             location_key=self.location_key,
         )
-        print(f'After matching: {adapter_config}')
         if adapter_config is not None:
             reduction_factor = adapter_config["reduction_factor"]
             if isinstance(reduction_factor, Mapping):

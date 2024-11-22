@@ -51,8 +51,6 @@ class Adapter(nn.Module):
         self.adapter_residual_before_ln = config["adapter_residual_before_ln"]
         self.use_gating = config["use_gating"]
 
-        print("Creating a bottleneck adapter")
-
         # Params related to input & output of adapter
         self.residual_before_ln = config["residual_before_ln"]
         self.original_ln_before = config["original_ln_before"]
@@ -438,8 +436,6 @@ class MambaAdapter(nn.Module):
         self.adapter_residual_before_ln = config["adapter_residual_before_ln"]
         self.use_gating = config["use_gating"]
 
-        print("Creating a Mamba Adapter")
-
         self.conv_proj = config["conv_down_proj"]
 
         # Params related to input & output of adapter
@@ -466,12 +462,10 @@ class MambaAdapter(nn.Module):
 
         # is a non-causal convolution
         if config["is_noncausal"]:
-            print("Non-Causal")
             global causal_conv1d_fn
             causal_conv1d_fn = None  # This disables causal_conv1d
 
         if config["shared_proj"]:
-            print("Shared Projections")
             if MambaAdapter.shared_down is None:
                 if config["conv_down_proj"]:
                     MambaAdapter.shared_down = nn.Conv1d(in_channels=self.input_size,
@@ -482,7 +476,6 @@ class MambaAdapter(nn.Module):
 
             seq_list.append(MambaAdapter.shared_down)
         else:
-            print("Projections not shared")
             if config["conv_down_proj"]:
                 seq_list.append(nn.Conv1d(in_channels=self.input_size,
                                             out_channels=self.down_sample,
@@ -499,7 +492,6 @@ class MambaAdapter(nn.Module):
         if config["initialization"] == "kaiming":
             nn.init.kaiming_normal_(MambaAdapter.shared_down.weight, nonlinearity=config["non_linearity"])
         if config["frozen_proj"]:
-            print("Frozen projections")
             # Initialize down projection using Kaiming
             nn.init.kaiming_normal_(MambaAdapter.shared_down.weight, nonlinearity=config["non_linearity"])
             if MambaAdapter.shared_down.bias is not None:
