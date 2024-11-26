@@ -21,7 +21,7 @@ Fine-tuning the library models for sequence to sequence.
 import logging
 import os
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from typing import Optional
 
 import datasets
@@ -54,7 +54,7 @@ from transformers.utils.versions import require_version
 
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
-check_min_version("4.44.0")
+check_min_version("4.26.0")
 
 require_version("datasets>=1.8.0", "To fix: pip install -r examples/pytorch/summarization/requirements.txt")
 
@@ -295,6 +295,18 @@ class DataTrainingArguments:
             self.val_max_target_length = self.max_target_length
 
 
+@dataclass
+class AdapterConfig:
+    d_conv: Optional[int] = field(default=4)
+    d_state: Optional[int] = field(default=16)
+    expand: Optional[int] = field(default=2)
+    reduction_factor: Optional[int] = field(default=64)
+    is_bidirectional: Optional[bool] = field(default=False)
+    is_noncausal: Optional[bool] = field(default=False)
+    conv_down_proj: Optional[bool] = field(default=False)
+    is_parallel: Optional[bool] = field(default=False)
+
+
 summarization_name_mapping = {
     "amazon_reviews_multi": ("review_body", "review_title"),
     "big_patent": ("description", "abstract"),
@@ -316,15 +328,17 @@ def main():
     # or by passing the --help flag to this script.
     # We now keep distinct sets of args, for a cleaner separation of concerns.
 
-    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments, AdapterArguments))
+    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments, AdapterArguments, AdapterConfig))
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
         # let's parse it to get our arguments.
-        model_args, data_args, training_args, adapter_args = parser.parse_json_file(
+        model_args, data_args, training_args, adapter_args, adapter_config = parser.parse_json_file(
             json_file=os.path.abspath(sys.argv[1])
         )
     else:
-        model_args, data_args, training_args, adapter_args = parser.parse_args_into_dataclasses()
+        model_args, data_args, training_args, adapter_args, adapter_config = parser.parse_args_into_dataclasses()
+
+    adapter_config = asdict(adapter_config)
 
     # Sending telemetry. Tracking the example usage helps us better allocate resources to maintain them. The
     # information sent is the one passed as arguments along with your Python/PyTorch versions.
@@ -419,7 +433,9 @@ def main():
             data_files=data_files,
             cache_dir=model_args.cache_dir,
             token=model_args.token,
+            local_files_only=True,
         )
+    print("Loaded Dataset")
     # See more about loading any type of standard or custom dataset (from files, python dict, pandas DataFrame, etc) at
     # https://huggingface.co/docs/datasets/loading_datasets.
 
@@ -435,6 +451,7 @@ def main():
         token=model_args.token,
         trust_remote_code=model_args.trust_remote_code,
     )
+    print("Loaded Config")
     tokenizer = AutoTokenizer.from_pretrained(
         model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
@@ -443,6 +460,7 @@ def main():
         token=model_args.token,
         trust_remote_code=model_args.trust_remote_code,
     )
+    print("Loaded Tokenizer")
     model = AutoModelForSeq2SeqLM.from_pretrained(
         model_args.model_name_or_path,
         from_tf=bool(".ckpt" in model_args.model_name_or_path),
@@ -452,6 +470,7 @@ def main():
         token=model_args.token,
         trust_remote_code=model_args.trust_remote_code,
     )
+    print("Loaded Model")
 
     # Convert the model into an adapter model
     adapters.init(model)
@@ -637,7 +656,7 @@ def main():
     )
 
     # Metric
-    metric = evaluate.load("rouge", cache_dir=model_args.cache_dir)
+    metric = evaluate.load("../metrics/rouge.py")
 
     def postprocess_text(preds, labels):
         preds = [pred.strip() for pred in preds]
@@ -679,7 +698,7 @@ def main():
     )
 
     # Setup adapters
-    setup_adapter_training(model, adapter_args, data_args.dataset_name or "summarization")
+    setup_adapter_training(model, adapter_args, data_args.dataset_name or "summarization", adapter_config)
     # Initialize our Trainer
     trainer_class = Seq2SeqAdapterTrainer if adapter_args.train_adapter else Seq2SeqTrainer
     trainer = trainer_class(
@@ -765,6 +784,8 @@ def main():
 
     if data_args.lang is not None:
         kwargs["language"] = data_args.lang
+
+    print(model.adapter_summary())
 
     if training_args.push_to_hub:
         trainer.push_to_hub(**kwargs)

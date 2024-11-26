@@ -20,7 +20,7 @@ import logging
 import os
 import random
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from typing import Optional
 
 import datasets
@@ -48,7 +48,7 @@ from transformers.utils.versions import require_version
 
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
-check_min_version("4.44.0")
+check_min_version("4.26.0")
 
 require_version("datasets>=1.8.0", "To fix: pip install -r examples/pytorch/text-classification/requirements.txt")
 
@@ -213,20 +213,34 @@ class ModelArguments:
     )
 
 
+@dataclass
+class AdapterConfig:
+    d_conv: Optional[int] = field(default=4)
+    d_state: Optional[int] = field(default=16)
+    expand: Optional[int] = field(default=2)
+    reduction_factor: Optional[int] = field(default=64)
+    is_bidirectional: Optional[bool] = field(default=False)
+    is_noncausal: Optional[bool] = field(default=False)
+    conv_down_proj: Optional[bool] = field(default=False)
+    is_parallel: Optional[bool] = field(default=False)
+    non_linearity: Optional[str] = field(default='None')
+
+
 def main():
     # See all possible arguments in src/transformers/training_args.py
     # or by passing the --help flag to this script.
     # We now keep distinct sets of args, for a cleaner separation of concerns.
 
-    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments, AdapterArguments))
+    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments, AdapterArguments, AdapterConfig))
+
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
         # let's parse it to get our arguments.
-        model_args, data_args, training_args, adapter_args = parser.parse_json_file(
+        model_args, data_args, training_args, adapter_args, adapter_config = parser.parse_json_file(
             json_file=os.path.abspath(sys.argv[1])
         )
     else:
-        model_args, data_args, training_args, adapter_args = parser.parse_args_into_dataclasses()
+        model_args, data_args, training_args, adapter_args, adapter_config = parser.parse_args_into_dataclasses()
 
     # Sending telemetry. Tracking the example usage helps us better allocate resources to maintain them. The
     # information sent is the one passed as arguments along with your Python/PyTorch versions.
@@ -274,6 +288,8 @@ def main():
 
     # Set seed before initializing model.
     set_seed(training_args.seed)
+
+    adapter_config = asdict(adapter_config)
 
     # Get the datasets: you can either provide your own CSV/JSON training and evaluation files (see below)
     # or specify a GLUE benchmark task (the dataset will be downloaded automatically from the datasets Hub).
@@ -344,6 +360,8 @@ def main():
     # See more about loading any type of standard or custom dataset at
     # https://huggingface.co/docs/datasets/loading_datasets.html
 
+    print("Loaded Dataset")
+
     # Labels
     if data_args.task_name is not None:
         is_regression = data_args.task_name == "stsb"
@@ -377,6 +395,7 @@ def main():
         token=model_args.token,
         trust_remote_code=model_args.trust_remote_code,
     )
+    print("Loaded Config")
     tokenizer = AutoTokenizer.from_pretrained(
         model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
@@ -385,6 +404,7 @@ def main():
         token=model_args.token,
         trust_remote_code=model_args.trust_remote_code,
     )
+    print("Loaded Tokenizer")
     # We use the AutoAdapterModel class here for better adapter support.
     model = AutoAdapterModel.from_pretrained(
         model_args.model_name_or_path,
@@ -396,8 +416,11 @@ def main():
         trust_remote_code=model_args.trust_remote_code,
         ignore_mismatched_sizes=model_args.ignore_mismatched_sizes,
     )
+    print("Loaded Model")
 
-    # Add head
+    # Convert the model into an adapter model
+    adapters.init(model)
+
     model.add_classification_head(
         data_args.task_name or "glue",
         num_labels=num_labels,
@@ -509,11 +532,11 @@ def main():
 
     # Get the metric function
     if data_args.task_name is not None:
-        metric = evaluate.load("glue", data_args.task_name, cache_dir=model_args.cache_dir)
+        metric = evaluate.load("../metrics/glue.py", data_args.task_name)
     elif is_regression:
         metric = evaluate.load("mse", cache_dir=model_args.cache_dir)
     else:
-        metric = evaluate.load("accuracy", cache_dir=model_args.cache_dir)
+        metric = evaluate.load("../metrics/accuracy.py")
 
     # You can define your custom compute_metrics function. It takes an `EvalPrediction` object (a namedtuple with a
     # predictions and label_ids field) and has to return a dictionary string to float.
@@ -535,7 +558,7 @@ def main():
         data_collator = None
 
     # Setup adapters
-    setup_adapter_training(model, adapter_args, data_args.task_name or "glue")
+    setup_adapter_training(model, adapter_args, data_args.task_name or "glue", adapter_config)
     # Initialize our Trainer
     trainer_class = AdapterTrainer if adapter_args.train_adapter else Trainer
     trainer = trainer_class(
@@ -634,6 +657,8 @@ def main():
         kwargs["dataset_tags"] = "glue"
         kwargs["dataset_args"] = data_args.task_name
         kwargs["dataset"] = f"GLUE {data_args.task_name.upper()}"
+
+    print(model.adapter_summary())
 
     if training_args.push_to_hub:
         trainer.push_to_hub(**kwargs)

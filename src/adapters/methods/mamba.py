@@ -1,4 +1,6 @@
-from typing import List, Mapping, NamedTuple, Optional, Union
+from adapters.methods.bottleneck import BottleneckLayer, BottleneckState
+
+from typing import Dict, List, Mapping, NamedTuple, Optional, Union
 
 import torch
 from torch import nn
@@ -13,35 +15,13 @@ from ..composition import (
     Stack,
     adjust_tensors_for_parallel,
 )
-from ..configuration import BnConfig
+from ..configuration import MambaAdapterConfig
 from ..context import ForwardContext
 from .adapter_layer_base import ComposableAdapterLayerBase
-from .modeling import Adapter, BertFusion, ParallelAdapter, ParallelMambaAdapter, MambaAdapter
+from .modeling import BertFusion, MambaAdapter, ParallelMambaAdapter
 
 
-class BottleneckState(NamedTuple):
-    """
-    Models the input and output states of a bottleneck adapter layer.
-
-    Args:
-        hidden_states (torch.Tensor): The layer input/ output hidden states.
-        input_tensor (torch.Tensor): The Transformer sub-block residual connection inputs.
-        adapter_residual (torch.Tensor): The adapter residual connection inputs.
-        layer_norm (torch.nn.Module, optional): The Transformer layer norm module.
-        bottleneck_up (torch.Tensor, optional):
-            The up-projected bottleneck MLP output. This is only for Fuse compositions.
-        last (str, optional): Name of the last adapter applied in the composition.
-    """
-
-    hidden_states: torch.Tensor
-    input_tensor: torch.Tensor
-    adapter_residual: torch.Tensor
-    layer_norm: Optional[torch.nn.Module]
-    bottleneck_up: Optional[torch.Tensor] = None
-    last: Optional[str] = None
-
-
-class BottleneckLayer(ComposableAdapterLayerBase, nn.Module):
+class MambaLayer(ComposableAdapterLayerBase, nn.Module):
     adapter_modules_name = "adapters"
     supported_compositions = [Stack, Fuse, Split, Parallel, BatchSplit, Average]
 
@@ -58,10 +38,10 @@ class BottleneckLayer(ComposableAdapterLayerBase, nn.Module):
 
     def add_adapter(self, adapter_name: str, layer_idx: int) -> bool:
         self.layer_idx = layer_idx
-
+        print("Mamba add_adapter")
         adapter_config = self.adapters_config.match(
             adapter_name,
-            config_type=BnConfig,
+            config_type=MambaAdapterConfig,
             layer_idx=self.layer_idx,
             location_key=self.location_key,
         )
@@ -79,16 +59,12 @@ class BottleneckLayer(ComposableAdapterLayerBase, nn.Module):
                         '{"1": 16, "default": 16}'
                     )
 
-            if adapter_config.architecture and "mamba" in adapter_config.architecture:
-                if adapter_config.is_parallel:
-                    adapter_class = ParallelMambaAdapter
-                else:
-                    adapter_class = MambaAdapter
-            else:  # is a regular bottleneck
-                if adapter_config.is_parallel:
-                    adapter_class = ParallelAdapter
-                else:
-                    adapter_class = Adapter
+            if adapter_config.is_parallel:
+                print("Parallel Mamba")
+                adapter_class = ParallelMambaAdapter
+            else:
+                print("Sequential Mamba")
+                adapter_class = MambaAdapter
             adapter = adapter_class(
                 adapter_name=adapter_name,
                 input_size=self.model_config.hidden_size,
@@ -97,6 +73,28 @@ class BottleneckLayer(ComposableAdapterLayerBase, nn.Module):
             )
             adapter.train(self.training)  # make sure training mode is consistent
             self.adapters[adapter_name] = adapter
+            return True
+
+        return False
+
+    def average_adapter(self, adapter_name: str, input_adapters: Dict[str, float]) -> bool:
+        # add new adapter
+        if self.add_adapter(adapter_name, self.layer_idx):
+            # average weights
+            avg_state_dict = {}
+            for name, weight in input_adapters.items():
+                if name in self.adapters:
+                    module = self.adapters[name]
+                    for k, v in module.state_dict().items():
+                        if k in avg_state_dict:
+                            avg_state_dict[k] += weight * v
+                        else:
+                            avg_state_dict[k] = weight * v
+                else:
+                    self.delete_adapter(adapter_name)  # clean up before raising error
+                    raise ValueError("Adapter {} not found.".format(name))
+            # load averaged weights
+            self.adapters[adapter_name].load_state_dict(avg_state_dict)
             return True
 
         return False
@@ -211,15 +209,13 @@ class BottleneckLayer(ComposableAdapterLayerBase, nn.Module):
     def compose_single(self, adapter_setup: str, state: BottleneckState, lvl: int = 0) -> BottleneckState:
         adapter_layer = self.adapters[adapter_setup]
         context = ForwardContext.get_context()
-        output_gating = context.output_adapter_gating_scores if context is not None else False
         layer_output = adapter_layer(
             state.hidden_states,
             residual_input=state.adapter_residual,
-            output_gating=output_gating,
+            output_gating=context.output_adapter_gating_scores,
         )
         hidden_states, up = layer_output[0], layer_output[2]
-        if output_gating:
-            self._store_gating_score(adapter_setup, layer_output[-1])
+        self._store_gating_score(adapter_setup, layer_output[-1])
 
         return state._replace(hidden_states=hidden_states, bottleneck_up=up, last=adapter_setup)
 
@@ -255,15 +251,14 @@ class BottleneckLayer(ComposableAdapterLayerBase, nn.Module):
             up_list = torch.stack([state.bottleneck_up for state in children_states])
             up_list = up_list.permute(1, 2, 0, 3)
 
-            output_fusion_attns = context.output_adapter_fusion_attentions if context is not None else False
             fusion_output = self.adapter_fusion_layer[adapter_setup.name](
                 query,
                 up_list,
                 up_list,
                 state.adapter_residual,
-                output_attentions=output_fusion_attns,
+                output_attentions=context.output_adapter_fusion_attentions,
             )
-            if output_fusion_attns:
+            if context.output_adapter_fusion_attentions:
                 hidden_states = fusion_output[0]
                 self._store_fusion_attentions(adapter_setup.name, fusion_output[-1])
             else:
