@@ -14,10 +14,12 @@ from .clip.mixin_clip import (
     CLIPTextTransformerAdaptersMixin,
     CLIPVisionModelAdaptersMixin,
 )
+from .deberta.mixin_deberta import DebertaModelAdaptersMixin
 from .distilbert.mixin_distilbert import DistilBertModelAdaptersMixin, DistilBertTransformerAdaptersMixin
 from .gpt2.mixin_gpt2 import GPT2ModelAdapterMixin
 from .gptj.mixin_gptj import GPTJMLPAdaptersMixin, GPTJModelAdapterMixin
 from .llama.mixin_llama import LlamaForQuestionAnsweringAdapterMixin, LlamaModelAdapterMixin
+from .mistral.mixin_mistral import MistralModelAdapterMixin
 from .plbart.mixin_plbart import (
     PLBartDecoderAdaptersMixin,
     PLBartDecoderWrapperAdaptersMixin,
@@ -31,6 +33,13 @@ from .t5.mixin_t5 import (
     T5ModelAdaptersMixin,
 )
 from .vit.mixin_vit import ViTIntermediateAdaptersMixin, ViTModelAdaptersMixin
+from .whisper.mixin_whisper import (
+    WhisperDecoderAdaptersMixin,
+    WhisperDecoderWrapperAdaptersMixin,
+    WhisperEncoderAdaptersMixin,
+    WhisperForAudioClassificationWithHeadsMixin,
+    WhisperModelAdaptersMixin,
+)
 from .xmod.mixin_xmod import XmodModelAdaptersMixin
 
 
@@ -86,12 +95,18 @@ MODEL_MIXIN_MAPPING = {
     "XLMRobertaModel": BertModelAdaptersMixin,
     "XmodLayer": BertLayerAdaptersMixin,
     "XmodModel": XmodModelAdaptersMixin,
-    "DebertaModel": BertModelAdaptersMixin,
+    "DebertaModel": DebertaModelAdaptersMixin,
     "DebertaLayer": BertLayerAdaptersMixin,
-    "DebertaV2Model": BertModelAdaptersMixin,
+    "DebertaV2Model": DebertaModelAdaptersMixin,
     "DebertaV2Layer": BertLayerAdaptersMixin,
     "BertGenerationEncoder": BertModelAdaptersMixin,
     "BertGenerationLayer": BertLayerAdaptersMixin,
     "LlamaModel": LlamaModelAdapterMixin,
+    "WhisperEncoder": WhisperEncoderAdaptersMixin,
+    "WhisperDecoder": WhisperDecoderAdaptersMixin,
+    "WhisperModel": WhisperModelAdaptersMixin,
+    "WhisperDecoderWrapper": WhisperDecoderWrapperAdaptersMixin,
+    "WhisperForAudioClassification": WhisperForAudioClassificationWithHeadsMixin,
     "LlamaForQuestionAnswering": LlamaForQuestionAnsweringAdapterMixin,
+    "MistralModel": MistralModelAdapterMixin,
 }

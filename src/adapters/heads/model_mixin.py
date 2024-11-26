@@ -27,7 +27,6 @@ from .language_modeling import BertStyleMaskedLMHead, CausalLMHead, Seq2SeqLMHea
 
 logger = logging.getLogger(__name__)
 
-
 MODEL_HEAD_MAP = {
     "classification": ClassificationHead,
     "multilabel_classification": MultiLabelClassificationHead,
@@ -95,6 +94,8 @@ class ModelWithFlexibleHeadsAdaptersMixin(ModelWithHeadsAdaptersMixin):
     def get_output_embeddings(self) -> Union[nn.Module, List[nn.Module]]:
         # Only gets the output embeddings for the currently active head
         embeddings = []
+        if not self._active_heads:
+            return None
         for head_name in self._active_heads:
             if head_name in self.heads:
                 head = self.heads[head_name]
@@ -110,6 +111,8 @@ class ModelWithFlexibleHeadsAdaptersMixin(ModelWithHeadsAdaptersMixin):
 
     def set_output_embeddings(self, new_embeddings: Union[nn.Module, List[nn.Module]]):
         # Only sets the output embeddings for the currently active head
+        if not self._active_heads:
+            return
         if not isinstance(new_embeddings, list):
             new_embeddings = [new_embeddings] * len(self._active_heads)
         for head_name, emb in zip(self._active_heads, new_embeddings):
@@ -133,6 +136,8 @@ class ModelWithFlexibleHeadsAdaptersMixin(ModelWithHeadsAdaptersMixin):
             if hasattr(self, self.base_model_prefix):
                 self = getattr(self, self.base_model_prefix)
             self._tie_encoder_decoder_weights(self.encoder, self.decoder, self.base_model_prefix)
+
+        super().tie_weights()
 
     def _resize_token_embeddings(self, new_num_tokens, pad_to_multiple_of=None):
         old_embeddings = self.get_input_embeddings()
@@ -438,30 +443,32 @@ class ModelWithFlexibleHeadsAdaptersMixin(ModelWithHeadsAdaptersMixin):
         self.add_prediction_head(head, overwrite_ok)
 
     @head_type("masked_lm")
-    def add_masked_lm_head(self, head_name, activation_function="gelu", overwrite_ok=False):
+    def add_masked_lm_head(self, head_name, activation_function="gelu", layers=2, overwrite_ok=False):
         """
         Adds a masked language modeling head on top of the model.
 
         Args:
             head_name (str): The name of the head.
             activation_function (str, optional): Activation function. Defaults to 'gelu'.
+            layers (int, optional): Number of layers. Defaults to 2.
             overwrite_ok (bool, optional): Force overwrite if a head with the same name exists. Defaults to False.
         """
-        head = BertStyleMaskedLMHead(self, head_name, activation_function=activation_function)
+        head = BertStyleMaskedLMHead(self, head_name, layers=layers, activation_function=activation_function)
         self.add_prediction_head(head, overwrite_ok=overwrite_ok)
 
     @head_type("causal_lm")
-    def add_causal_lm_head(self, head_name, activation_function="gelu", overwrite_ok=False):
+    def add_causal_lm_head(self, head_name, activation_function="gelu", layers=2, overwrite_ok=False):
         """
         Adds a causal language modeling head on top of the model.
 
         Args:
             head_name (str): The name of the head.
             activation_function (str, optional): Activation function. Defaults to 'gelu'.
+            layers (int, optional): Number of layers. Defaults to 2.
             overwrite_ok (bool, optional): Force overwrite if a head with the same name exists. Defaults to False.
         """
         head = CausalLMHead(
-            self, head_name, layers=2, activation_function=activation_function, layer_norm=True, bias=True
+            self, head_name, layers=layers, activation_function=activation_function, layer_norm=True, bias=True
         )
         self.add_prediction_head(head, overwrite_ok=overwrite_ok)
 
@@ -469,6 +476,7 @@ class ModelWithFlexibleHeadsAdaptersMixin(ModelWithHeadsAdaptersMixin):
     def add_seq2seq_lm_head(
         self,
         head_name,
+        layers=1,
         overwrite_ok=False,
     ):
         """
@@ -476,9 +484,10 @@ class ModelWithFlexibleHeadsAdaptersMixin(ModelWithHeadsAdaptersMixin):
 
         Args:
             head_name (str): The name of the head.
+            layers (int, optional): Number of layers. Defaults to 1.
             overwrite_ok (bool, optional): Force overwrite if a head with the same name exists. Defaults to False.
         """
-        head = Seq2SeqLMHead(self, head_name)
+        head = Seq2SeqLMHead(self, head_name, layers=layers)
         self.add_prediction_head(head, overwrite_ok=overwrite_ok)
 
     def delete_head(self, head_name: str):

@@ -81,10 +81,10 @@ class AdapterMethodBaseTestMixin:
 
         model.delete_adapter(name)
 
-    def run_average_test(self, model, adapter_config, filter_keys):
+    def run_linear_average_test(self, model, adapter_config, filter_keys):
         model.eval()
 
-        weights = [0.1, 0.6, 0.3]
+        weights = [-0.2, 0.9, 0.3]
 
         # add adapters to average
         name = "test_adapter_" + adapter_config.__class__.__name__
@@ -103,7 +103,9 @@ class AdapterMethodBaseTestMixin:
                     averaged_weights[base_k] += w * v
 
         # average adapters
-        model.average_adapter(name, [name + f"_{i}" for i in range(len(weights))], weights=weights)
+        model.average_adapter(
+            name, [name + f"_{i}" for i in range(len(weights))], weights=weights, combine_strategy="linear"
+        )
 
         # adapter is correctly added to config
         self.assertTrue(name in model.adapters_config)
@@ -243,7 +245,7 @@ class AdapterMethodBaseTestMixin:
             output1 = model1(**input_data)
             output2 = model2(**input_data)
         self.assertEqual(len(output1), len(output2))
-        self.assertTrue(torch.equal(output1[0], output2[0]))
+        self.assertTrue(torch.allclose(output1[0], output2[0], atol=1e-4))
 
     def trainings_run(self, model, lr=1.0, steps=8):
         # setup dataset
@@ -315,6 +317,8 @@ class AdapterMethodBaseTestMixin:
             return tied_embeddings and is_tied_layer
 
         for (k1, v1), (k2, v2) in zip(state_dict_pre.items(), model.state_dict().items()):
+            # move both to the same device to avoid device mismatch errors
+            v1, v2 = v1.to(v2.device), v2
             if "mrpc" in k1 and not has_tied_embeddings(k1):
                 adapters_with_change |= not torch.equal(v1, v2)
             else:

@@ -19,9 +19,9 @@ class PrefixTuningTestMixin(AdapterMethodBaseTestMixin):
         model = self.get_model()
         self.run_leave_out_test(model, PrefixTuningConfig(flat=True), self.leave_out_layers)
 
-    def test_average_prefix_tuning(self):
+    def test_linear_average_prefix_tuning(self):
         model = self.get_model()
-        self.run_average_test(model, PrefixTuningConfig(flat=True), ["prefix_tunings.{name}."])
+        self.run_linear_average_test(model, PrefixTuningConfig(flat=True), ["prefix_tunings.{name}."])
 
     def test_delete_prefix_tuning(self):
         model = self.get_model()
@@ -94,7 +94,10 @@ class PrefixTuningTestMixin(AdapterMethodBaseTestMixin):
         seq_output_length = 32
 
         # Finally, also check if generation works properly
-        input_ids = self.get_input_samples((1, 4), config=model1.config)["input_ids"]
+        if self.is_speech_model:
+            input_ids = self.get_input_samples((1, 80, 3000), config=model1.config)["input_features"]
+        else:
+            input_ids = self.get_input_samples((1, 4), config=model1.config)["input_ids"]
         input_ids = input_ids.to(torch_device)
         generated = model1.generate(input_ids, max_length=seq_output_length)
         self.assertLessEqual(generated.shape, (1, seq_output_length))

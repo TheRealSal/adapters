@@ -33,7 +33,9 @@ class BeitSelfAttentionWithAdapters(BeitSelfAttentionAdaptersMixin, BeitSelfAtte
         hidden_states: torch.Tensor,
         head_mask: Optional[torch.Tensor] = None,
         output_attentions: bool = False,
-        relative_position_bias: Optional[BeitRelativePositionBias] = None,
+        relative_position_bias: Optional["BeitRelativePositionBias"] = None,
+        interpolate_pos_encoding: bool = False,
+        resolution: Optional[Tuple[int]] = None,
     ) -> Union[Tuple[torch.Tensor], Tuple[torch.Tensor, torch.Tensor]]:
         mixed_query_layer = self.query(hidden_states)
 
@@ -50,7 +52,11 @@ class BeitSelfAttentionWithAdapters(BeitSelfAttentionAdaptersMixin, BeitSelfAtte
 
         # Add relative position bias if present.
         if self.relative_position_bias is not None:
-            attention_scores = attention_scores + self.relative_position_bias().unsqueeze(0)
+            height, width = resolution
+            window_size = (height // self.config.patch_size, width // self.config.patch_size)
+            attention_scores = attention_scores + self.relative_position_bias(
+                window_size, interpolate_pos_encoding, dim_size=hidden_states.shape[1]
+            )
 
         # Add shared relative position bias if provided.
         if relative_position_bias is not None:
@@ -86,13 +92,17 @@ class BeitLayerWithAdapters(BeitLayerAdaptersMixin, BeitLayer):
         hidden_states: torch.Tensor,
         head_mask: Optional[torch.Tensor] = None,
         output_attentions: bool = False,
-        relative_position_bias: Optional[BeitRelativePositionBias] = None,
+        relative_position_bias: Optional["BeitRelativePositionBias"] = None,
+        interpolate_pos_encoding: bool = False,
+        resolution: Optional[Tuple[int]] = None,
     ) -> Union[Tuple[torch.Tensor], Tuple[torch.Tensor, torch.Tensor]]:
         self_attention_outputs = self.attention(
             self.layernorm_before(hidden_states),  # in BEiT, layernorm is applied before self-attention
             head_mask,
             output_attentions=output_attentions,
             relative_position_bias=relative_position_bias,
+            interpolate_pos_encoding=interpolate_pos_encoding,
+            resolution=resolution,
         )
         attention_output = self_attention_outputs[0]
         outputs = self_attention_outputs[1:]  # add self attentions if we output attention weights

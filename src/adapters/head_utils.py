@@ -5,7 +5,6 @@ import re
 
 logger = logging.getLogger(__name__)
 
-
 # The "layers" attributes in the configs below map from static head module names to flex head module names.
 # In this context, "None" refers to a flex-head layer without weights (e.g. dropout, acts).
 STATIC_TO_FLEX_HEAD_MAP = {
@@ -673,6 +672,39 @@ STATIC_TO_FLEX_HEAD_MAP = {
         },
         "layers": [None, "qa_outputs"],
     },
+    "LlamaForTokenClassification": {
+        "config": {
+            "head_type": "tagging",
+            "layers": 1,
+            "activation_function": None,
+        },
+        "layers": [None, "score"],
+    },
+    # Mistral
+    "MistralForSequenceClassification": {
+        "config": {
+            "head_type": "classification",
+            "layers": 1,
+            "dropout_prob": 0,
+            "activation_function": None,
+            "bias": False,
+        },
+        "layers": [None, "score"],
+    },
+    "MistralForCausalLM": {
+        "config": {
+            "head_type": "causal_lm",
+        },
+        "layers": ["lm_head"],
+    },
+    "MistralForTokenClassification": {
+        "config": {
+            "head_type": "tagging",
+            "layers": 1,
+            "activation_function": None,
+        },
+        "layers": [None, "score"],
+    },
     # Electra
     "ElectraForTokenClassification": {
         "config": {
@@ -737,6 +769,16 @@ STATIC_TO_FLEX_HEAD_MAP = {
             "generator_predictions.LayerNorm",
             "generator_lm_head",
         ],
+    },
+    "WhisperForConditionalGeneration": {
+        "config": {
+            "head_type": "seq2seq_lm",
+            "layers": 1,
+            "activation_function": None,
+            "layer_norm": False,
+            "bias": False,
+        },
+        "layers": ["proj_out"],
     },
 }
 

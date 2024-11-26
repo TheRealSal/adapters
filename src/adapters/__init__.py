@@ -16,7 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.0.0.dev0"
+__version__ = "1.0.1"
 
 from typing import TYPE_CHECKING
 
@@ -41,6 +41,7 @@ _import_structure = {
         "DEFAULT_ADAPTERFUSION_CONFIG",
         "AdapterConfig",
         "AdapterFusionConfig",
+        "AdapterPlusConfig",
         "BnConfig",
         "CompacterConfig",
         "CompacterPlusPlusConfig",
@@ -114,11 +115,13 @@ _import_structure = {
     "models.gptj": ["GPTJAdapterModel"],
     "models.llama": ["LlamaAdapterModel"],
     "models.mbart": ["MBartAdapterModel"],
+    "models.mistral": ["MistralAdapterModel"],
     "models.mt5": ["MT5AdapterModel"],
     "models.plbart": ["PLBartAdapterModel"],
     "models.roberta": ["RobertaAdapterModel"],
     "models.t5": ["T5AdapterModel"],
     "models.vit": ["ViTAdapterModel"],
+    "models.whisper": ["WhisperAdapterModel"],
     "models.xlm_roberta": ["XLMRobertaAdapterModel"],
     "models.xmod": ["XmodAdapterModel"],
     "trainer": ["AdapterTrainer", "Seq2SeqAdapterTrainer"],
@@ -160,6 +163,7 @@ if TYPE_CHECKING:
         DEFAULT_ADAPTERFUSION_CONFIG,
         AdapterConfig,
         AdapterFusionConfig,
+        AdapterPlusConfig,
         BnConfig,
         CompacterConfig,
         CompacterPlusPlusConfig,
@@ -226,11 +230,13 @@ if TYPE_CHECKING:
     from .models.gptj import GPTJAdapterModel
     from .models.llama import LlamaAdapterModel
     from .models.mbart import MBartAdapterModel
+    from .models.mistral import MistralAdapterModel
     from .models.mt5 import MT5AdapterModel
     from .models.plbart import PLBartAdapterModel
     from .models.roberta import RobertaAdapterModel
     from .models.t5 import T5AdapterModel
     from .models.vit import ViTAdapterModel
+    from .models.whisper import WhisperAdapterModel
     from .models.xlm_roberta import XLMRobertaAdapterModel
     from .models.xmod import XmodAdapterModel
     from .trainer import AdapterTrainer, Seq2SeqAdapterTrainer
