@@ -21,7 +21,7 @@ Fine-tuning the library models for sequence to sequence.
 import logging
 import os
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from typing import Optional
 
 import datasets
@@ -260,20 +260,34 @@ class DataTrainingArguments:
             self.val_max_target_length = self.max_target_length
 
 
+@dataclass
+class AdapterConfig:
+    d_conv: Optional[int] = field(default=4)
+    d_state: Optional[int] = field(default=16)
+    expand: Optional[int] = field(default=2)
+    reduction_factor: Optional[int] = field(default=64)
+    is_bidirectional: Optional[bool] = field(default=False)
+    is_noncausal: Optional[bool] = field(default=False)
+    conv_down_proj: Optional[bool] = field(default=False)
+    is_parallel: Optional[bool] = field(default=False)
+
+
 def main():
     # See all possible arguments in src/transformers/training_args.py
     # or by passing the --help flag to this script.
     # We now keep distinct sets of args, for a cleaner separation of concerns.
 
-    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments, AdapterArguments))
+    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments, AdapterArguments, AdapterConfig))
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
         # let's parse it to get our arguments.
-        model_args, data_args, training_args, adapter_args = parser.parse_json_file(
+        model_args, data_args, training_args, adapter_args, adapter_config = parser.parse_json_file(
             json_file=os.path.abspath(sys.argv[1])
         )
     else:
-        model_args, data_args, training_args, adapter_args = parser.parse_args_into_dataclasses()
+        model_args, data_args, training_args, adapter_args, adapter_config = parser.parse_args_into_dataclasses()
+
+    adapter_config = asdict(adapter_config)
 
     # Sending telemetry. Tracking the example usage helps us better allocate resources to maintain them. The
     # information sent is the one passed as arguments along with your Python/PyTorch versions.
@@ -600,7 +614,7 @@ def main():
 
     # Setup adapters
     setup_adapter_training(
-        model, adapter_args, data_args.source_lang.split("_")[0] + "_" + data_args.target_lang.split("_")[0]
+        model, adapter_args, data_args.source_lang.split("_")[0] + "_" + data_args.target_lang.split("_")[0], adapter_config
     )
 
     # Initialize our Trainer
