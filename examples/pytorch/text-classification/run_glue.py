@@ -532,11 +532,11 @@ def main():
 
     # Get the metric function
     if data_args.task_name is not None:
-        metric = evaluate.load("../metrics/glue.py", data_args.task_name)
+        metric = evaluate.load("glue", data_args.task_name)
     elif is_regression:
         metric = evaluate.load("mse", cache_dir=model_args.cache_dir)
     else:
-        metric = evaluate.load("../metrics/accuracy.py")
+        metric = evaluate.load("accuracy")
 
     # You can define your custom compute_metrics function. It takes an `EvalPrediction` object (a namedtuple with a
     # predictions and label_ids field) and has to return a dictionary string to float.
