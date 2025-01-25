@@ -398,7 +398,7 @@ def main():
         token=model_args.token,
         trust_remote_code=model_args.trust_remote_code,
     )
-    logger.info("Loaded Config")
+    print("Loaded Config")
     tokenizer = AutoTokenizer.from_pretrained(
         model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
@@ -407,7 +407,7 @@ def main():
         token=model_args.token,
         trust_remote_code=model_args.trust_remote_code,
     )
-    logger.info("Loaded Tokenizer")
+    print("Loaded Tokenizer")
     # We use the AutoAdapterModel class here for better adapter support.
     model = AutoAdapterModel.from_pretrained(
         model_args.model_name_or_path,
@@ -419,7 +419,7 @@ def main():
         trust_remote_code=model_args.trust_remote_code,
         ignore_mismatched_sizes=model_args.ignore_mismatched_sizes,
     )
-    logger.info("Loaded Model")
+    print("Loaded Model")
 
     # Convert the model into an adapter model
     adapters.init(model)
@@ -608,8 +608,8 @@ def main():
                 max_eval_samples = min(len(valid_mm_dataset), data_args.max_eval_samples)
                 valid_mm_dataset = valid_mm_dataset.select(range(max_eval_samples))
             eval_datasets.append(valid_mm_dataset)
-            combined = {}
 
+        combined_metrics = {}
         for eval_dataset, task in zip(eval_datasets, tasks):
             metrics = trainer.evaluate(eval_dataset=eval_dataset)
 
@@ -619,12 +619,22 @@ def main():
             metrics["eval_samples"] = min(max_eval_samples, len(eval_dataset))
 
             if task == "mnli-mm":
+                # Append '_mm' to mismatched metrics
                 metrics = {k + "_mm": v for k, v in metrics.items()}
-            if task is not None and "mnli" in task:
-                combined.update(metrics)
+            combined_metrics.update(metrics)
 
             trainer.log_metrics("eval", metrics)
-            trainer.save_metrics("eval", combined if task is not None and "mnli" in task else metrics)
+            trainer.save_metrics("eval", metrics)
+
+        # Compute combined accuracy for mnli and mnli-mm
+        mnli_acc = combined_metrics.get("eval_accuracy", 0.0)
+        mnli_mm_acc = combined_metrics.get("eval_accuracy_mm", 0.0)
+        combined_accuracy = (mnli_acc + mnli_mm_acc) / 2
+
+        # Log and report the combined metric
+        logger.info(f"Combined Accuracy (MNLI + MNLI-mm): {combined_accuracy}")
+        from orion.client import report_results
+        report_results([{"name": "objective", "type": "objective", "value": combined_accuracy}])
 
     if training_args.do_predict:
         logger.info("*** Predict ***")
@@ -661,7 +671,7 @@ def main():
         kwargs["dataset_args"] = data_args.task_name
         kwargs["dataset"] = f"GLUE {data_args.task_name.upper()}"
 
-    logger.info(model.adapter_summary())
+    print(model.adapter_summary())
 
     if training_args.push_to_hub:
         trainer.push_to_hub(**kwargs)
