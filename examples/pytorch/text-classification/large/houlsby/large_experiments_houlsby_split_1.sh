@@ -1,4 +1,5 @@
 #!/bin/bash
+export CUDA_VISIBLE_DEVICES=0,1
 
 # Array of directories to process
 directories=("qqp" "rte" "sst2" "sts-b")

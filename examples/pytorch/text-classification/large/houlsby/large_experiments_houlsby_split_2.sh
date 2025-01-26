@@ -1,4 +1,5 @@
 #!/bin/bash
+export CUDA_VISIBLE_DEVICES=2,3
 
 # Array of directories to process
 directories=("cola" "mnli" "mrpc" "qnli")
