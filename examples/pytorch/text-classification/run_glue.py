@@ -309,6 +309,7 @@ def main():
             "num_train_epochs": training_args.num_train_epochs,
             "seed": training_args.seed,
             "model": model_args.model_name_or_path,
+            "task_name": data_args.task_name,
         },
     )
 
