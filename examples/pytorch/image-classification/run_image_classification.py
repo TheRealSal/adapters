@@ -190,6 +190,24 @@ class ModelArguments:
     )
 
 
+def get_model_details(model):
+    n_parameters = sum(p.numel() for p in model.parameters())
+    logger.info('Number of params of the model:', n_parameters)
+    n_train_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+    logger.info('Number of trainable params of the model: ', n_train_parameters)
+
+    n_head_parameters = model.classifier.weight.numel()
+    if model.classification_head.bias is not None:
+        n_head_parameters += model.classifier.bias.numel()
+    logger.info('Number of params in classification_head: ', n_head_parameters)
+
+    n_train_parameters -= n_head_parameters
+    logger.info('Number of trainable params of the model w/o head: ', n_train_parameters)
+
+    return n_parameters, n_train_parameters
+
+
 def main():
     # See all possible arguments in src/transformers/training_args.py
     # or by passing the --help flag to this script.
@@ -449,7 +467,7 @@ def main():
         trainer.log_metrics("eval", metrics)
         trainer.save_metrics("eval", metrics)
 
-    print(model.adapter_summary())
+    logger.info(model.adapter_summary())
 
     # Write model card and (optionally) push to hub
     kwargs = {
