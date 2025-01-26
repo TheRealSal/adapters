@@ -47,6 +47,8 @@ from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils import check_min_version, send_example_telemetry
 from transformers.utils.versions import require_version
 
+import wandb
+
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
 check_min_version("4.26.0")
@@ -288,11 +290,29 @@ def main():
             )
 
     # Set seed before initializing model.
-    seed = random.randint(0, 2**32 - 1)
-    set_seed(seed)
+    set_seed(training_args.seed)
     logger.info(f"Using random seed: {training_args.seed}")
 
     adapter_config = asdict(adapter_config)
+
+    # W&B Initialization
+    wandb.init(
+        project="GLUE",
+        name=training_args.run_name,
+        tags=[],
+        config={
+            "reduction_factor": adapter_config["reduction_factor"],
+            "d_conv": adapter_config["d_conv"],
+            "d_state": adapter_config["d_state"],
+            "learning_rate": training_args.learning_rate,
+            "batch_size": training_args.per_device_train_batch_size,
+            "num_train_epochs": training_args.num_train_epochs,
+            "seed": training_args.seed,
+            "model": model_args.model_name_or_path,
+        },
+    )
+
+    logger.info("W&B tracking initialized")
 
     # Get the datasets: you can either provide your own CSV/JSON training and evaluation files (see below)
     # or specify a GLUE benchmark task (the dataset will be downloaded automatically from the datasets Hub).
