@@ -634,7 +634,7 @@ def main():
         # Log and report the combined metric
         logger.info(f"Combined Accuracy (MNLI + MNLI-mm): {combined_accuracy}")
         from orion.client import report_results
-        report_results([{"name": "objective", "type": "objective", "value": combined_accuracy}])
+        report_results([{"name": "objective", "type": "objective", "value": 1 - combined_accuracy}])
 
     if training_args.do_predict:
         logger.info("*** Predict ***")
