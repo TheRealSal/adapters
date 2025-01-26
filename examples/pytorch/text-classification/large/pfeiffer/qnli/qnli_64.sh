@@ -5,7 +5,7 @@ for i in {1..5}; do
   seed=$(python -c "import torch; print(torch.randint(low=0, high=2**32 - 1, size=(1,)).item())")
   echo "Run $i with seed $seed"
   
-  torchrun --nproc_per_node=2 /home/ubuntu/workspace/adapters/examples/pytorch/text-classification/run_glue.py \
+  torchrun --nproc_per_node=2 --master_port=29501 /home/ubuntu/workspace/adapters/examples/pytorch/text-classification/run_glue.py \
     --model_name_or_path roberta-large \
     --task_name $TASK_NAME \
     --do_train \
