@@ -37,7 +37,7 @@ for i in {1..5}; do
     --d_conv 20 \
     --d_state 16 \
     --expand 2 \
-    --disable_tqdm True \
+    --overwrite_output_dir \
 
     echo "Run completed for seed $seed"
 done
