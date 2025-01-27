@@ -16,6 +16,7 @@
 import logging
 import os
 import sys
+from collections import defaultdict
 from dataclasses import dataclass, field, asdict
 from typing import Optional
 
@@ -188,6 +189,20 @@ class ModelArguments:
         default=False,
         metadata={"help": "Will enable to load a pretrained model whose head dimensions are different."},
     )
+
+def sample_subset(dataset, label_column, samples_per_class, seed=42):
+    """Select a fixed number of samples per class."""
+    rng = np.random.default_rng(seed)
+    grouped_samples = defaultdict(list)
+
+    for i, example in enumerate(dataset):
+        grouped_samples[example[label_column]].append(i)
+
+    sampled_indices = []
+    for label, indices in grouped_samples.items():
+        sampled_indices.extend(rng.choice(indices, size=min(samples_per_class, len(indices)), replace=False))
+
+    return dataset.select(sampled_indices)
 
 
 def main():
@@ -389,6 +404,14 @@ def main():
         if data_args.max_train_samples is not None:
             dataset["train"] = (
                 dataset["train"].shuffle(seed=training_args.seed).select(range(data_args.max_train_samples))
+            )
+        else:
+            # Sample 10 samples per class for training
+            dataset["train"] = sample_subset(
+                dataset["train"],
+                label_column=data_args.label_column_name,
+                samples_per_class=10,
+                seed=training_args.seed
             )
         # Set the training transforms
         dataset["train"].set_transform(train_transforms)
