@@ -7,12 +7,10 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 module load StdEnv/2023  gcc/12.3 intel/2023.2.1 gcccore/.12.3 ucc/1.2.0 ucx/1.14.1 openmpi/4.1.5 arrow/17.0.0 cuda/11.8
 source $HOME/Adapters/adapters/examples/pytorch/image-classification/CVEnv/bin/activate
 
-seeds=(1337 3768427010 3721728231 2148699938 3169696615)
-
-cd $HOME/Adapters/adapters/examples/pytorch/image-classification
-
-for seed in "${seeds[@]}"; do
-    
+for i in {1..5}; do
+    # Generate a random seed using Python (mimicking PyTorch behavior)
+    seed=$(python -c "import torch; print(torch.randint(low=0, high=2**32 - 1, size=(1,)).item())")
+    echo "Run $i with seed $seed"
     python run_image_classification.py \
     --dataset_name uoft-cs/cifar100 \
     --model_name_or_path "google/vit-large-patch16-224-in21k" \
