@@ -405,14 +405,14 @@ def main():
             dataset["train"] = (
                 dataset["train"].shuffle(seed=training_args.seed).select(range(data_args.max_train_samples))
             )
-        else:
-            # Sample 10 samples per class for training
-            dataset["train"] = sample_subset(
-                dataset["train"],
-                label_column=data_args.label_column_name,
-                samples_per_class=10,
-                seed=training_args.seed
-            )
+        # else:
+        #     # Sample 10 samples per class for training
+        #     dataset["train"] = sample_subset(
+        #         dataset["train"],
+        #         label_column=data_args.label_column_name,
+        #         samples_per_class=10,
+        #         seed=training_args.seed
+        #     )
         # Set the training transforms
         dataset["train"].set_transform(train_transforms)
 
