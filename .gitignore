@@ -177,3 +177,16 @@ tests/backwards_compatibility/Ref_Out
 
 # backwards compatibility
 model_outputs
+
+#mine
+notebooks/
+
+mamba_ssm-*.whl
+slurm-*.out
+
+examples/pytorch/image-classification/cifar-100/
+examples/pytorch/image-classification/cifar100
+
+examples/pytorch/image-classification/CVEnv/
+
+hf_transformers/

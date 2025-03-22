@@ -2,6 +2,15 @@
 #SBATCH --mail-user=s_ssaina@live.concordia.ca
 #SBATCH --mail-type=ALL
 
+module load StdEnv/2023  gcc/12.3 intel/2023.2.1 gcccore/.12.3 ucc/1.2.0 ucx/1.14.1 openmpi/4.1.5 arrow/17.0.0 cuda/11.8
+source $HOME/Adapters/adapters/examples/pytorch/image-classification/CVEnv/bin/activate
+
+export WANDB_PROJECT="CVMambaAdapter"
+export WANDB_MODE="offline"
+
+export HF_EVALUATE_OFFLINE=1
+export HF_HUB_OFFLINE=1
+
 for i in {1..5}; do
     # Generate a random seed using Python (mimicking PyTorch behavior)
     seed=$(python -c "import torch; print(torch.randint(low=0, high=2**32 - 1, size=(1,)).item())")
@@ -19,9 +28,9 @@ for i in {1..5}; do
     --learning_rate 2e-4 \
     --num_train_epochs 10 \
     --adapter_config "shared_scaled_par_mamba" \
-    --cache_dir "hf_cache" \
-    --per_device_train_batch_size 8 \
-    --per_device_eval_batch_size 8 \
+    --cache_dir "$SCRATCH/hf_cache" \
+    --per_device_train_batch_size 32 \
+    --per_device_eval_batch_size 32 \
     --logging_strategy steps \
     --logging_steps 10 \
     --eval_strategy epoch \

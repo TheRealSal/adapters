@@ -21,9 +21,9 @@ for i in {1..5}; do
     --learning_rate 2e-4 \
     --num_train_epochs 10 \
     --adapter_config "shared_scaled_par_mamba" \
-    --cache_dir "hf_cache" \
-    --per_device_train_batch_size 8 \
-    --per_device_eval_batch_size 8 \
+    --cache_dir "$SCRATCH/hf_cache" \
+    --per_device_train_batch_size 32 \
+    --per_device_eval_batch_size 32 \
     --logging_strategy steps \
     --logging_steps 10 \
     --eval_strategy epoch \

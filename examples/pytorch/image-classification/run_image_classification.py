@@ -204,6 +204,22 @@ def sample_subset(dataset, label_column, samples_per_class, seed=42):
 
     return dataset.select(sampled_indices)
 
+def get_model_details(model):
+    n_parameters = sum(p.numel() for p in model.parameters())
+    print('Number of params of the model:', n_parameters)
+    n_train_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+    print('Number of trainable params of the model: ', n_train_parameters)
+
+    n_head_parameters = model.classification_head.weight.numel()
+    if model.classification_head.bias is not None:
+        n_head_parameters += model.classification_head.bias.numel()
+    print('Number of params in classification_head: ', n_head_parameters)
+
+    n_train_parameters -= n_head_parameters
+    print('Number of trainable params of the model w/o head: ', n_train_parameters)
+
+    return n_parameters, n_train_parameters
 
 def main():
     # See all possible arguments in src/transformers/training_args.py
@@ -351,6 +367,7 @@ def main():
     )
     image_processor = AutoImageProcessor.from_pretrained(
         model_args.image_processor_name or model_args.model_name_or_path,
+        use_fast=True,
         cache_dir=model_args.cache_dir,
         revision=model_args.model_revision,
         token=model_args.token,
