@@ -30,7 +30,7 @@ for i in {1..5}; do
     --learning_rate 1e-5 \
     --num_train_epochs 10 \
     --adapter_config "shared_scaled_double_parallel_mamba" \
-    --cache_dir "hf_cache" \
+    --cache_dir "$SCRATCH/hf_cache" \
     --per_device_train_batch_size 32 \
     --per_device_eval_batch_size 32 \
     --logging_strategy steps \
