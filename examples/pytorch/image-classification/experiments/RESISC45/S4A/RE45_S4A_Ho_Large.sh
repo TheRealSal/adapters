@@ -19,7 +19,7 @@ for i in {1..5}; do
     --do_train \
     --do_eval \
     --train_adapter \
-    --learning_rate 2e-4 \
+    --learning_rate 1e-5 \
     --num_train_epochs 10 \
     --adapter_config "shared_scaled_double_parallel_mamba" \
     --cache_dir "$SCRATCH/hf_cache" \
