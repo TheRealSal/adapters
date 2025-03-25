@@ -11,6 +11,8 @@ export WANDB_MODE="offline"
 export HF_EVALUATE_OFFLINE=1
 export HF_HUB_OFFLINE=1
 
+cd $HOME/Adapters/adapters/examples/pytorch/image-classification
+
 for i in {1..5}; do
     # Generate a random seed using Python (mimicking PyTorch behavior)
     seed=$(python -c "import torch; print(torch.randint(low=0, high=2**32 - 1, size=(1,)).item())")

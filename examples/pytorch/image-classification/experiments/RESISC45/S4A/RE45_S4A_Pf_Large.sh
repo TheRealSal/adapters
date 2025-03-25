@@ -2,6 +2,19 @@
 #SBATCH --mail-user=s_ssaina@live.concordia.ca
 #SBATCH --mail-type=ALL
 
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+
+module load StdEnv/2023  gcc/12.3 intel/2023.2.1 gcccore/.12.3 ucc/1.2.0 ucx/1.14.1 openmpi/4.1.5 arrow/17.0.0 cuda/11.8
+source $HOME/Adapters/adapters/examples/pytorch/image-classification/CVEnv/bin/activate
+
+export WANDB_PROJECT="CVMambaAdapter"
+export WANDB_MODE="offline"
+
+export HF_EVALUATE_OFFLINE=1
+export HF_HUB_OFFLINE=1
+
+cd $HOME/Adapters/adapters/examples/pytorch/image-classification
+
 for i in {1..5}; do
     # Generate a random seed using Python (mimicking PyTorch behavior)
     seed=$(python -c "import torch; print(torch.randint(low=0, high=2**32 - 1, size=(1,)).item())")
