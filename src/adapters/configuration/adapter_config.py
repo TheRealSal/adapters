@@ -255,6 +255,7 @@ class BnConfig(AdapterConfig):
     hypercomplex_nonlinearity: Optional[str] = "glorot-uniform"
     phm_rank: Optional[int] = 1
     phm_bias: Optional[bool] = True
+    shared_proj: bool = False
     stochastic_depth: Optional[float] = 0.0
 
     # We want to emulate a simple form of immutability while keeping the ability to add custom attributes.
@@ -730,6 +731,57 @@ class UniPELTConfig(ConfigUnion):
         super().__init__(*[c.replace(use_gating=True) for c in components])
 
 
+@dataclass(eq=False)
+class MambaAdapterConfig(BnConfig):
+    """
+    Config class for MambaAdapter.
+    """
+
+    architecture: Optional[str] = "mamba"
+    mh_adapter: bool = False
+    output_adapter: bool = True
+    reduction_factor: Union[float, Mapping] = 64
+    non_linearity: str = "relu"
+    d_state: int = 64
+    d_conv: int = 4
+    expand: int = 2
+    frozen_proj: bool = False
+    is_bidirectional: bool = False
+    is_noncausal: bool = False
+    initialization: str = "random"
+    conv_down_proj: Optional[bool] = field(default=False)
+
+
+@dataclass(eq=False)
+class ParallelMambaAdapterConfig(MambaAdapterConfig):
+    """
+    Config class for MambaAdapter.
+    """
+    is_parallel: bool = True
+    architecture: Optional[str] = "par_mamba"
+
+
+@dataclass(eq=False)
+class DoubleMambaAdapterConfig(MambaAdapterConfig):
+    """
+    Config class for MambaAdapter.
+    """
+    mh_adapter: bool = True
+    output_adapter: bool = True
+    architecture: Optional[str] = "houlsby_seq_mamba"
+
+
+@dataclass(eq=False)
+class DoubleParallelMambaAdapterConfig(MambaAdapterConfig):
+    """
+    Config class for MambaAdapter.
+    """
+    mh_adapter: bool = True
+    output_adapter: bool = True
+    is_parallel: bool = True
+    architecture: Optional[str] = "houlsby_par_mamba"
+
+
 # IMPORTANT: When adding a new config here, also add it to docs/overview.md!
 ADAPTER_CONFIG_MAP = {
     # DEPRECATED STRINGS
@@ -758,6 +810,15 @@ ADAPTER_CONFIG_MAP = {
     "direft": DiReftConfig(),
     "mam": MAMConfig(),
     "unipelt": UniPELTConfig(),
+    "mamba": MambaAdapterConfig(),
+    "par_mamba": ParallelMambaAdapterConfig(),
+    "double_mamba": DoubleMambaAdapterConfig(),
+    "double_parallel_mamba": DoubleParallelMambaAdapterConfig(),
+    "shared_scaled_mamba": MambaAdapterConfig(scaling="learned", shared_proj=True),
+    "shared_scaled_par_mamba": ParallelMambaAdapterConfig(scaling="learned", shared_proj=True),
+    "shared_scaled_double_mamba": DoubleMambaAdapterConfig(scaling="learned", shared_proj=True),
+    "shared_scaled_double_parallel_mamba": DoubleParallelMambaAdapterConfig(scaling="learned", shared_proj=True),
+    "frozen_shared_scaled_double_parallel_mamba": DoubleParallelMambaAdapterConfig(scaling="learned", shared_proj=True, frozen_proj=True),
 }
 
 DEFAULT_ADAPTER_CONFIG = "seq_bn"

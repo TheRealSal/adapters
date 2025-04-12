@@ -90,6 +90,8 @@ def setup_adapter_training(
         else:
             model.set_active_adapters(adapter_name)
 
+        print(f"Model after adding: {model}")
+
         return adapter_name, lang_adapter_name
     else:
         if adapter_args.load_adapter or adapter_args.load_lang_adapter:
